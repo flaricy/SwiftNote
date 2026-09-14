@@ -1,37 +1,13 @@
 const tabs = [...document.querySelectorAll('[data-scene]')];
-const picture = document.querySelector('#scene-image');
+const pictures = [...document.querySelectorAll('[data-scene-image]')];
 const panel = document.querySelector('#scene');
-const images = ['orders.png', 'editor.png', 'selection.png', 'dark.png'];
-let requestVersion = 0;
-let displayedIndex = 0;
-function markSelection(index) {
+function select(index) {
   tabs.forEach((tab, i) => {
     tab.setAttribute('aria-selected', String(i === index));
     tab.tabIndex = i === index ? 0 : -1;
+    pictures[i].hidden = i !== index;
   });
   panel.setAttribute('aria-labelledby', tabs[index].id);
-}
-async function select(index) {
-  const version = ++requestVersion;
-  markSelection(index);
-  panel.setAttribute('aria-busy', 'true');
-  const next = new Image();
-  next.src = `assets/${images[index]}`;
-  try {
-    await next.decode();
-    if (version !== requestVersion) return;
-    picture.src = next.src;
-    picture.alt = tabs[index].textContent;
-    if (displayedIndex !== index && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      picture.getAnimations().forEach(animation => animation.cancel());
-      picture.animate([{ opacity: 0.65 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
-    }
-    displayedIndex = index;
-  } catch {
-    if (version === requestVersion) markSelection(displayedIndex);
-  } finally {
-    if (version === requestVersion) panel.setAttribute('aria-busy', 'false');
-  }
 }
 tabs.forEach((tab, index) => {
   tab.tabIndex = index === 0 ? 0 : -1;
