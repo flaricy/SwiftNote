@@ -4,11 +4,13 @@
 
 ## Installation
 
-1. Download `SwiftNote-1.0.1-macOS-arm64.zip` from [GitHub Releases](https://github.com/flaricy/SwiftNote/releases/tag/v1.0.1). Requires Apple Silicon and macOS 14 or later.
+1. Download `SwiftNote-1.0.2-macOS-arm64.zip` from [GitHub Releases](https://github.com/flaricy/SwiftNote/releases/tag/v1.0.2). Requires Apple Silicon and macOS 14 or later.
 2. Unzip it and drag **随记.app** into Applications. 随记 is SwiftNote’s name in Finder; the app’s menus are currently in Chinese.
 3. This release is ad-hoc signed and not Apple-notarized. If macOS blocks it, verify that you downloaded it from this repository and follow [Apple’s Open Anyway instructions](https://support.apple.com/102445) in System Settings → Privacy & Security. Do not disable Gatekeeper.
 
 No Accessibility or Screen Recording permission is required. `⌃⌥N` creates a note while the app is running. If another app uses this shortcut, use the menu bar compose button.
+
+The app keeps its warm paper appearance even when macOS uses dark mode.
 
 ## Writing and formatting
 
@@ -20,7 +22,7 @@ Type `- ` for a list, `1. ` for a numbered list, or `[] ` for a checklist. Retur
 
 Paste, drop, or insert an image with the toolbar. Select it and use the bottom slider to resize it proportionally. Imported images are converted to PNG, with a maximum long edge of 2,400 pixels.
 
-The table button lets you choose an initial row and column count. Use Tab / Shift-Tab between cells; right-click to insert or delete a row.
+The table dialog has separate menus for rows (2–20, including the header) and columns (2–8), defaulting to 3 × 3. Use Tab / Shift-Tab between cells; right-click to insert or delete a row.
 
 ### Literal hash characters
 

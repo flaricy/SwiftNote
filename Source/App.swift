@@ -100,7 +100,9 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
         return b
     }
     func buildWindow() {
+        NSApp.appearance = NSAppearance(named: .aqua)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1060, height: 740), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
+        window.appearance = NSAppearance(named: .aqua)
         window.backgroundColor = MemoTheme.paper
         window.title = "随记"; window.titleVisibility = .hidden; window.titlebarAppearsTransparent = true
         window.acceptsMouseMovedEvents = true
@@ -277,15 +279,36 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.image]; panel.allowsMultipleSelection = true
         panel.beginSheetModal(for: window) { [weak self] result in guard result == .OK else { return }; for url in panel.urls { if let image = NSImage(contentsOf: url) { self?.editor.insertImage(image) } } }
     }
-    @objc func insertTable() {
-        let alert = NSAlert(); alert.messageText = "插入表格"; alert.informativeText = "第一行为表头，单元格可直接编辑。"
+    func makeTableInsertionAlert() -> (NSAlert, NSPopUpButton, NSPopUpButton) {
+        let alert = NSAlert()
+        alert.messageText = "插入表格"
+        alert.informativeText = "第一行为表头，单元格可直接编辑。"
         alert.addButton(withTitle: "插入"); alert.addButton(withTitle: "取消")
-        let rows = NSTextField(string: "3"); let cols = NSTextField(string: "3")
-        let rowLabel = NSTextField(labelWithString: "行数"); let colLabel = NSTextField(labelWithString: "列数")
-        let form = NSStackView(views: [rowLabel, rows, colLabel, cols]); form.frame = NSRect(x: 0, y: 0, width: 250, height: 28); form.spacing = 8
+        let form = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 80))
+        let rows = NSPopUpButton(frame: NSRect(x: 88, y: 44, width: 176, height: 28))
+        let cols = NSPopUpButton(frame: NSRect(x: 88, y: 4, width: 176, height: 28))
+        rows.addItems(withTitles: (2...20).map { "\($0) 行" })
+        cols.addItems(withTitles: (2...8).map { "\($0) 列" })
+        rows.selectItem(at: 1); cols.selectItem(at: 1)
+        rows.setAccessibilityLabel("行数，包含表头"); cols.setAccessibilityLabel("列数")
+        for (title, y) in [("行数", CGFloat(48)), ("列数", CGFloat(8))] {
+            let label = NSTextField(labelWithString: title)
+            label.frame = NSRect(x: 0, y: y, width: 72, height: 20)
+            form.addSubview(label)
+        }
+        form.addSubview(rows); form.addSubview(cols)
+        rows.nextKeyView = cols
         alert.accessoryView = form
+        alert.window.appearance = NSAppearance(named: .aqua)
+        alert.window.initialFirstResponder = rows
+        return (alert, rows, cols)
+    }
+    @objc func insertTable() {
+        let (alert, rows, cols) = makeTableInsertionAlert()
         alert.beginSheetModal(for: window) { [weak self] response in
-            if response == .alertFirstButtonReturn { self?.editor.insertTable(rows: min(20,max(2,rows.integerValue)), columns: min(8,max(2,cols.integerValue))) }
+            guard response == .alertFirstButtonReturn, let self else { return }
+            self.editor.insertTable(rows: rows.indexOfSelectedItem+2, columns: cols.indexOfSelectedItem+2)
+            self.window.makeFirstResponder(self.editor.view)
         }
     }
     @objc func deleteNote() {

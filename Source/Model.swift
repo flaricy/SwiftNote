@@ -1,19 +1,13 @@
 import AppKit
 import CryptoKit
 
-// Dynamic native colors keep the memo calm in both system appearances.
+// The app intentionally keeps its warm paper appearance in every system theme.
 enum MemoTheme {
-    static func color(_ name: String, light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> NSColor {
-        NSColor(name: NSColor.Name(name), dynamicProvider: { appearance in
-            let c = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
-            return NSColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 1)
-        })
-    }
-    static let paper = color("memo.paper", light: (0.989, 0.977, 0.949), dark: (0.115, 0.128, 0.119))
-    static let sidebar = color("memo.sidebar", light: (0.911, 0.937, 0.893), dark: (0.145, 0.176, 0.150))
-    static let surface = color("memo.surface", light: (0.966, 0.959, 0.919), dark: (0.180, 0.204, 0.178))
-    static let selection = color("memo.selection", light: (0.799, 0.859, 0.749), dark: (0.267, 0.354, 0.260))
-    static let accent = color("memo.accent", light: (0.337, 0.427, 0.274), dark: (0.714, 0.796, 0.588))
+    static let paper = NSColor(srgbRed: 0.989, green: 0.977, blue: 0.949, alpha: 1)
+    static let sidebar = NSColor(srgbRed: 0.911, green: 0.937, blue: 0.893, alpha: 1)
+    static let surface = NSColor(srgbRed: 0.966, green: 0.959, blue: 0.919, alpha: 1)
+    static let selection = NSColor(srgbRed: 0.799, green: 0.859, blue: 0.749, alpha: 1)
+    static let accent = NSColor(srgbRed: 0.337, green: 0.427, blue: 0.274, alpha: 1)
 }
 
 struct LineRecord: Codable, Equatable {

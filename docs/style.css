@@ -8,7 +8,7 @@
 /* One quiet segmented control; selection and keyboard focus are separate states. */
 .showcase .scene-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   width: max-content;
   max-width: 100%;
   margin: 0 auto 24px;

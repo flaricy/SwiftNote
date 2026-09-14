@@ -24,4 +24,4 @@ The app uses `io.github.flaricy.SwiftNote` as its public bundle identifier. The 
 
 Startup is designed to restore the last note directly. Measurements in a small local fixture were sub-second, but are not a cold-start or all-hardware guarantee. Test larger documents before making performance claims.
 
-Release checklist: run tests and build; inspect default, selected text, slash menu, dark and narrow states; check that assets contain only fictional notes; package on the documented architecture; publish the ZIP and checksum. Apple notarization is not currently configured.
+Release checklist: run tests and build; inspect default, selected text, slash menu, narrow states and the fixed light appearance under both system themes; check that assets contain only fictional notes; package on the documented architecture; publish the ZIP and checksum. Apple notarization is not currently configured.

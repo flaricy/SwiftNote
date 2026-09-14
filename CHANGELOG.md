@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.2
+
+- Use the warm paper appearance regardless of the system theme.
+- Replace cramped table size fields with labeled row and column menus.
+- Remove the dark-mode website showcase.
+
+
 ## 1.0.1
 
 - Warm paper editor, sage sidebar, and clearer selection colors in light and dark appearances.
