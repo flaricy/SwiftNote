@@ -4,7 +4,7 @@
 <p align="center"><a href="https://github.com/flaricy/SwiftNote/releases/download/v1.0.0/SwiftNote-1.0.0-macOS-arm64.zip"><b>↓ 下载 macOS 版</b></a>　·　<a href="https://flaricy.github.io/SwiftNote/">网站 / Website ↗</a></p>
 <p align="center"><sub>Apple Silicon · macOS 14+ · 免费开源 · MIT</sub></p>
 
-[![随记实际界面：简单的侧栏、轻量工具栏与直接可编辑的正文](docs/assets/editor.png)](https://flaricy.github.io/SwiftNote/)
+[![随记实际界面：账单行末尾按需显示修改时间](docs/assets/orders.png)](https://flaricy.github.io/SwiftNote/)
 
 ### 打开，就回到你的思路。
 
@@ -12,7 +12,7 @@
 
 **写起来顺手。** 输入 `# ` 到 `#### ` 变成标题；输入 `/` 插入标题、列表、待办、图片或表格。选中文字，就近排版。
 
-**需要时，再看时间。** 点击一行，在文字末尾查看最近修改时间。行尾太满，就用一个小钟；悬停即时显示完整时间。
+**记账时，也留个时间线索。** 下单当时记下买了什么、花了多少，点击这一行就能查看最近修改时间。行尾太满，就用一个小钟；悬停即时显示完整日期。后续编辑会更新时间，并不会永久保留原始下单时间。
 
 **留住日常的小事。** 图片可粘贴、拖入和等比缩放；表格可编辑、增删行；待办点一下完成。自动保存，支持搜索。
 
