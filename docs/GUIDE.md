@@ -1,5 +1,7 @@
 # 使用随记
 
+**简体中文** · [English](GUIDE.en.md)
+
 ## 安装
 
 1. 从 GitHub Releases 下载 `SwiftNote-1.0.0-macOS-arm64.zip`。下载包适用于 Apple Silicon Mac，最低系统为 macOS 14。
@@ -33,9 +35,3 @@
 数据位置：`~/Library/Application Support/LocalNotes/`。可用“文件 → 显示本地数据”打开。该目录名保留以兼容早期版本；每篇 RTFD 文档加一个 JSON 索引。备份时请在退出应用后复制整个目录。
 
 文档和索引分别原子写入，并不是跨文件事务。保存失败时应用保留未保存内容并提示。删除的原文件保留在 `Deleted/` 子目录；没有内置垃圾箱界面。文件没有额外应用层加密。
-
-## English installation
-
-Download the arm64 ZIP from GitHub Releases, unzip it, and move 随记.app to Applications. Requires Apple Silicon and macOS 14+. The release is ad-hoc signed, not Apple-notarized. If macOS blocks the first launch, verify the source and follow [Apple's Open Anyway instructions](https://support.apple.com/102445) in System Settings → Privacy & Security. Do not disable Gatekeeper.
-
-The app needs no Accessibility or Screen Recording permission. Notes are stored at `~/Library/Application Support/LocalNotes/`. Quit the app and copy the entire directory for a backup. Export individual notes as RTFD from the File menu.

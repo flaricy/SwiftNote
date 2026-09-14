@@ -25,7 +25,7 @@ Edit times stay quiet: click a line to see its timestamp, or hover the little cl
 
 Swift + AppKit. No accounts, subscriptions, or cloud sync. MIT licensed.
 
-Website: https://flaricy.github.io/SwiftNote/
-Source & download: https://github.com/flaricy/SwiftNote
+Website: https://flaricy.github.io/SwiftNote/en.html
+Source & download: https://github.com/flaricy/SwiftNote/blob/main/README.en.md
 
-The first download is for Apple Silicon, macOS 14+. Not Apple-notarized yet; see the installation guide before first launch.
+The first download is for Apple Silicon, macOS 14+. App menus are currently in Chinese; English notes are supported. Not Apple-notarized yet; see the English installation guide before first launch.

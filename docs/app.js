@@ -51,3 +51,15 @@ orderRows.forEach((row, index) => {
 document.addEventListener('click', event => {
   if (!event.target.closest('.order-row')) orderRows.forEach(row => { row.classList.remove('is-expanded'); row.querySelector('.order-time').setAttribute('aria-expanded', 'false'); });
 });
+
+// Keep the current section and screenshot when changing languages.
+const requestedScene = Number(new URLSearchParams(location.search).get('scene'));
+if (Number.isInteger(requestedScene) && requestedScene >= 0 && requestedScene < tabs.length) select(requestedScene);
+document.querySelectorAll('[data-language-link]').forEach(link => {
+  link.addEventListener('click', () => {
+    const target = new URL(link.href);
+    target.hash = location.hash;
+    target.searchParams.set('scene', String(tabs.findIndex(tab => tab.getAttribute('aria-selected') === 'true')));
+    link.href = target.href;
+  });
+});

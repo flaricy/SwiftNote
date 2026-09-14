@@ -1,3 +1,5 @@
+[简体中文](README.md) · [English](README.en.md)
+
 <p align="center"><img src="docs/assets/app-icon.png" width="76" alt="随记图标"></p>
 <h1 align="center">SwiftNote · 随记</h1>
 <p align="center">念头一闪，随手记下。<br><sub>A thought, a note. Nothing in the way.</sub></p>
@@ -37,14 +39,7 @@ Swift + AppKit + TextKit，无 WebView、第三方运行时或网络请求。不
 
 支持常用 Markdown 快捷输入和粘贴，不是完整 Markdown 文件编辑器。修改时间按段落记录，自动折行共享时间，不提供历史版本恢复。图片缩放使用滑杆，表格使用原生文本单元格。
 
-<details>
-<summary>English</summary>
 
-SwiftNote is a small native macOS memo app. Open directly into your last note, or create one from the menu bar. Use Markdown shortcuts, a slash menu, inline formatting, images, editable tables, and checklists. Click a line to see when it was last edited; hover for the full timestamp.
-
-Swift, AppKit, and TextKit. No accounts, network calls, cloud sync, or third-party runtime. Apple Silicon download; macOS 14+. MIT licensed. The release is ad-hoc signed and is not Apple-notarized. See the [installation guide](docs/GUIDE.md) before first launch.
-
-</details>
 
 ### 从源码构建
 
