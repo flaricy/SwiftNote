@@ -4,7 +4,7 @@
 
 ## Installation
 
-1. Download `SwiftNote-1.0.0-macOS-arm64.zip` from [GitHub Releases](https://github.com/flaricy/SwiftNote/releases/tag/v1.0.0). Requires Apple Silicon and macOS 14 or later.
+1. Download `SwiftNote-1.0.1-macOS-arm64.zip` from [GitHub Releases](https://github.com/flaricy/SwiftNote/releases/tag/v1.0.1). Requires Apple Silicon and macOS 14 or later.
 2. Unzip it and drag **随记.app** into Applications. 随记 is SwiftNote’s name in Finder; the app’s menus are currently in Chinese.
 3. This release is ad-hoc signed and not Apple-notarized. If macOS blocks it, verify that you downloaded it from this repository and follow [Apple’s Open Anyway instructions](https://support.apple.com/102445) in System Settings → Privacy & Security. Do not disable Gatekeeper.
 
@@ -21,6 +21,10 @@ Type `- ` for a list, `1. ` for a numbered list, or `[] ` for a checklist. Retur
 Paste, drop, or insert an image with the toolbar. Select it and use the bottom slider to resize it proportionally. Imported images are converted to PNG, with a maximum long edge of 2,400 pixels.
 
 The table button lets you choose an initial row and column count. Use Tab / Shift-Tab between cells; right-click to insert or delete a row.
+
+### Literal hash characters
+
+`##` alone stays as text. A space after `##` at the start of a line creates a heading. To keep the literal text, press Backspace immediately after conversion: `## ` is restored and you can keep typing. You can also type `\## ` to explicitly escape the heading shortcut.
 
 ## Edit times
 

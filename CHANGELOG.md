@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+
+- Warm paper editor, sage sidebar, and clearer selection colors in light and dark appearances.
+- Immediately press Backspace after an automatic heading to restore its literal Markdown prefix.
+- Escape a heading prefix with a backslash to keep it as plain text; bare hashes remain unchanged.
+- Refreshed real screenshots in both website languages.
+
 ## 1.0.0
 
 First public release of SwiftNote · 随记.

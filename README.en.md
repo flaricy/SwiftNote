@@ -3,7 +3,7 @@
 <p align="center"><img src="docs/assets/app-icon.png" width="76" alt="SwiftNote icon"></p>
 <h1 align="center">SwiftNote</h1>
 <p align="center">A thought, a note. Nothing in the way.</p>
-<p align="center"><a href="https://github.com/flaricy/SwiftNote/releases/download/v1.0.0/SwiftNote-1.0.0-macOS-arm64.zip"><b>↓ Download for macOS</b></a> · <a href="https://flaricy.github.io/SwiftNote/en.html">Website ↗</a></p>
+<p align="center"><a href="https://github.com/flaricy/SwiftNote/releases/download/v1.0.1/SwiftNote-1.0.1-macOS-arm64.zip"><b>↓ Download for macOS</b></a> · <a href="https://flaricy.github.io/SwiftNote/en.html">Website ↗</a></p>
 <p align="center"><sub>Apple Silicon · macOS 14+ · Free & open source · MIT</sub></p>
 
 [![A purchase note with its latest edit time beside the text](docs/assets/orders-en.png)](https://flaricy.github.io/SwiftNote/en.html#order-time)

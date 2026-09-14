@@ -3,7 +3,7 @@
 <p align="center"><img src="docs/assets/app-icon.png" width="76" alt="随记图标"></p>
 <h1 align="center">SwiftNote · 随记</h1>
 <p align="center">念头一闪，随手记下。<br><sub>A thought, a note. Nothing in the way.</sub></p>
-<p align="center"><a href="https://github.com/flaricy/SwiftNote/releases/download/v1.0.0/SwiftNote-1.0.0-macOS-arm64.zip"><b>↓ 下载 macOS 版</b></a>　·　<a href="https://flaricy.github.io/SwiftNote/">网站 / Website ↗</a></p>
+<p align="center"><a href="https://github.com/flaricy/SwiftNote/releases/download/v1.0.1/SwiftNote-1.0.1-macOS-arm64.zip"><b>↓ 下载 macOS 版</b></a>　·　<a href="https://flaricy.github.io/SwiftNote/">网站 / Website ↗</a></p>
 <p align="center"><sub>Apple Silicon · macOS 14+ · 免费开源 · MIT</sub></p>
 
 [![随记实际界面：账单行末尾按需显示修改时间](docs/assets/orders.png)](https://flaricy.github.io/SwiftNote/)

@@ -165,7 +165,7 @@ final class NoteTextView: NSTextView, NSViewToolTipOwner {
                 let bubble = NSRect(x: max(visibleRect.minX+8, min(tooltipRect.minX, visibleRect.maxX-width-8)), y: y, width: width, height: 30)
                 NSGraphicsContext.saveGraphicsState()
                 let shadow = NSShadow(); shadow.shadowColor = NSColor.black.withAlphaComponent(0.12); shadow.shadowBlurRadius = 8; shadow.shadowOffset = NSSize(width: 0, height: -2); shadow.set()
-                NSColor.controlBackgroundColor.setFill()
+                MemoTheme.surface.setFill()
                 NSBezierPath(roundedRect: bubble, xRadius: 7, yRadius: 7).fill()
                 NSGraphicsContext.restoreGraphicsState()
                 NSColor.separatorColor.withAlphaComponent(0.25).setStroke()
@@ -248,6 +248,8 @@ final class EditorController: NSObject, NSTextViewDelegate {
     var commandItems: [(String, String, Int)] = []
     let allCommands: [(String, String, Int)] = [("正文", "text", 0), ("标题 1", "h1 heading", 1), ("标题 2", "h2 heading", 2), ("标题 3", "h3 heading", 3), ("标题 4", "h4 heading", 4), ("项目列表", "bullet list", 5), ("待办事项", "todo checkbox", 6), ("编号列表", "number list", 7), ("引用", "quote", 8), ("表格", "table", 9), ("图片", "image photo", 10)]
 
+    // One immediate Backspace can decline a heading shortcut without deleting its text.
+    var pendingHeading: (range: NSRange, original: NSAttributedString, caret: Int, convertedCaret: Int, typing: [NSAttributedString.Key: Any])?
     var updating = false
     var defaultSize: CGFloat = 16
     var defaultFamily: String?
@@ -262,7 +264,9 @@ final class EditorController: NSObject, NSTextViewDelegate {
         view.isVerticallyResizable = true; view.isHorizontallyResizable = false
         view.autoresizingMask = [.width]; view.minSize = NSSize(width: 200, height: 0); view.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         view.textContainerInset = NSSize(width: 28, height: 24)
-        view.backgroundColor = .textBackgroundColor
+        view.backgroundColor = MemoTheme.paper
+        view.insertionPointColor = MemoTheme.accent
+        view.selectedTextAttributes = [.backgroundColor: MemoTheme.selection, .foregroundColor: NSColor.labelColor]
         view.typingAttributes = bodyAttributes(); view.delegate = self
         view.isAutomaticQuoteSubstitutionEnabled = false; view.isAutomaticDashSubstitutionEnabled = false
         view.isAutomaticSpellingCorrectionEnabled = false
@@ -291,6 +295,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
         view.onTableTab = { [weak self] backwards in self?.navigateTable(backwards: backwards) ?? false }
     }
     func load(_ text: NSAttributedString, lines: [LineRecord]) {
+        pendingHeading = nil
         view.hasClickedLine = false; commandPalette.isHidden = true; selectionTools.isHidden = true; slashRange = nil
         updating = true; view.textStorage?.setAttributedString(text)
         view.records = lines; view.recordRanges = paragraphRanges(text.string)
@@ -300,6 +305,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
     }
     func textViewDidChangeSelection(_ notification: Notification) {
         view.timeOverlay.needsDisplay = true
+        if let pending = pendingHeading, view.selectedRange() != NSRange(location: pending.convertedCaret, length: 0) { pendingHeading = nil }
         guard !updating else { return }
         updateSelectionTools()
         updateCommandPalette()
@@ -310,6 +316,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
         else { selectedImage = nil; onImageSelected?(false) }
     }
     func textDidChange(_ notification: Notification) {
+        pendingHeading = nil
         guard !updating else { return }
         renderInlineMarkdown()
         updateCommandPalette()
@@ -445,6 +452,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
         view.window?.makeFirstResponder(view)
     }
     func handleInsertion(_ text: String, at range: NSRange) -> Bool {
+        pendingHeading = nil
         guard !updating, range.length == 0 else { return false }
         if text == "\n", !commandPalette.isHidden { executeCommand(); return true }
         let s = view.string as NSString
@@ -452,7 +460,15 @@ final class EditorController: NSObject, NSTextViewDelegate {
         let prefix = s.substring(with: NSRange(location: paragraph.location, length: range.location-paragraph.location))
         let style = range.location < s.length ? view.textStorage?.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle : view.typingAttributes[.paragraphStyle] as? NSParagraphStyle
         guard style?.textBlocks.isEmpty != false else { return false }
+        if text == " ", prefix.first == "\\", ["#", "##", "###", "####"].contains(String(prefix.dropFirst())) {
+            let literal = String(prefix.dropFirst()) + " "
+            replace(NSRange(location: paragraph.location, length: prefix.utf16.count), with: NSAttributedString(string: literal, attributes: view.typingAttributes))
+            return true
+        }
         if text == " ", ["#", "##", "###", "####", "-", "*", ">", "[]", "[ ]", "1."].contains(prefix) {
+            let originalTyping = view.typingAttributes
+            let original = NSMutableAttributedString(attributedString: view.textStorage!.attributedSubstring(from: paragraph))
+            original.insert(NSAttributedString(string: " ", attributes: originalTyping), at: range.location-paragraph.location)
             let level = prefix.first == "#" ? prefix.count : 0
             let marker = ["-", "*"].contains(prefix) ? "• " : (["[]", "[ ]"].contains(prefix) ? "☐ " : (prefix == "1." ? "1. " : ""))
             var attrs = headingAttributes(level)
@@ -465,6 +481,9 @@ final class EditorController: NSObject, NSTextViewDelegate {
             }
             replace(paragraph, with: replacement, caret: paragraph.location+marker.utf16.count)
             view.typingAttributes = attrs
+            if level > 0 {
+                pendingHeading = (NSRange(location: paragraph.location, length: replacement.length), original, range.location+1, paragraph.location, originalTyping)
+            }
             return true
         }
         if text == "\n" {
@@ -491,6 +510,13 @@ final class EditorController: NSObject, NSTextViewDelegate {
         return false
     }
     func backspaceBlock() -> Bool {
+        if let pending = pendingHeading, view.selectedRange() == NSRange(location: pending.convertedCaret, length: 0) {
+            pendingHeading = nil
+            replace(pending.range, with: pending.original, caret: pending.caret)
+            view.typingAttributes = pending.typing
+            return true
+        }
+        pendingHeading = nil
         let selection = view.selectedRange(); guard selection.length == 0 else { return false }
         let s = view.string as NSString; let paragraph = s.paragraphRange(for: selection)
         let prefix = s.substring(with: NSRange(location: paragraph.location, length: selection.location-paragraph.location))

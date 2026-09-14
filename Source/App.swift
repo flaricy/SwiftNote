@@ -1,6 +1,20 @@
 import AppKit
 import Carbon
 
+final class MemoSidebar: NSView {
+    override func draw(_ dirtyRect: NSRect) { MemoTheme.sidebar.setFill(); bounds.fill() }
+    override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); needsDisplay = true }
+}
+final class MemoRow: NSTableRowView {
+    override var interiorBackgroundStyle: NSView.BackgroundStyle { .normal }
+    override func drawSelection(in dirtyRect: NSRect) {
+        guard isSelected else { return }
+        MemoTheme.selection.setFill()
+        NSBezierPath(roundedRect: bounds.insetBy(dx: 6, dy: 3), xRadius: 9, yRadius: 9).fill()
+    }
+    override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); needsDisplay = true }
+}
+
 final class MemoCell: NSTableCellView {
     let title = NSTextField(labelWithString: "")
     let preview = NSTextField(labelWithString: "")
@@ -81,11 +95,13 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
     func button(_ symbol: String, _ help: String, _ action: Selector) -> NSButton {
         let b = NSButton(image: NSImage(systemSymbolName: symbol, accessibilityDescription: help) ?? NSImage(), target: self, action: action)
         b.bezelStyle = .texturedRounded; b.isBordered = false; b.contentTintColor = .secondaryLabelColor; b.toolTip = help; b.setAccessibilityLabel(help)
+        if symbol == "square.and.pencil" { b.contentTintColor = MemoTheme.accent }
         b.widthAnchor.constraint(equalToConstant: 30).isActive = true; b.heightAnchor.constraint(equalToConstant: 28).isActive = true
         return b
     }
     func buildWindow() {
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1060, height: 740), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
+        window.backgroundColor = MemoTheme.paper
         window.title = "随记"; window.titleVisibility = .hidden; window.titlebarAppearsTransparent = true
         window.acceptsMouseMovedEvents = true
         window.minSize = NSSize(width: 740, height: 420); window.delegate = self; window.isReleasedWhenClosed = false
@@ -93,7 +109,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
         let root = NSView(); window.contentView = root
         split = NSSplitView(); split.isVertical = true; split.dividerStyle = .thin; split.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(split)
         NSLayoutConstraint.activate([split.leadingAnchor.constraint(equalTo: root.leadingAnchor), split.trailingAnchor.constraint(equalTo: root.trailingAnchor), split.topAnchor.constraint(equalTo: root.topAnchor), split.bottomAnchor.constraint(equalTo: root.bottomAnchor)])
-        let side = NSVisualEffectView(); side.material = .sidebar; side.blendingMode = .behindWindow; side.state = .active; sidebar = side
+        let side = MemoSidebar(); sidebar = side
         side.frame = NSRect(x: 0, y: 0, width: 244, height: 740)
         let right = NSView(frame: NSRect(x: 0, y: 0, width: 799, height: 740)); documentHost = right
         split.addArrangedSubview(side); split.addArrangedSubview(right); split.setHoldingPriority(.defaultHigh, forSubviewAt: 0)
@@ -102,9 +118,9 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
         let head = NSStackView(views: [search, new]); head.orientation = .horizontal; head.spacing = 8
         head.translatesAutoresizingMaskIntoConstraints = false; side.addSubview(head)
         search.placeholderString = "搜索"; search.delegate = self; search.font = .systemFont(ofSize: 12); search.controlSize = .small; search.translatesAutoresizingMaskIntoConstraints = false; search.setAccessibilityLabel("搜索备忘录")
-        let list = NSScrollView(); list.hasVerticalScroller = true; list.drawsBackground = false; list.translatesAutoresizingMaskIntoConstraints = false; side.addSubview(list)
-        table.headerView = nil; table.backgroundColor = .clear; table.rowHeight = 75; table.intercellSpacing = NSSize(width: 0, height: 2); table.selectionHighlightStyle = .regular
-        table.style = .sourceList; table.delegate = self; table.dataSource = self
+        let list = NSScrollView(); list.hasVerticalScroller = true; list.drawsBackground = true; list.backgroundColor = MemoTheme.sidebar; list.contentView.drawsBackground = true; list.contentView.backgroundColor = MemoTheme.sidebar; list.translatesAutoresizingMaskIntoConstraints = false; side.addSubview(list)
+        table.headerView = nil; table.backgroundColor = MemoTheme.sidebar; table.rowHeight = 75; table.intercellSpacing = NSSize(width: 0, height: 2); table.selectionHighlightStyle = .regular
+        table.style = .plain; table.delegate = self; table.dataSource = self
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("note")); column.resizingMask = .autoresizingMask; table.addTableColumn(column)
         list.documentView = table
         NSLayoutConstraint.activate([head.leadingAnchor.constraint(equalTo: side.leadingAnchor, constant: 16), head.trailingAnchor.constraint(equalTo: side.trailingAnchor, constant: -12), head.topAnchor.constraint(equalTo: side.topAnchor, constant: 39), head.heightAnchor.constraint(equalToConstant: 32), list.topAnchor.constraint(equalTo: head.bottomAnchor, constant: 16), list.leadingAnchor.constraint(equalTo: side.leadingAnchor, constant: 6), list.trailingAnchor.constraint(equalTo: side.trailingAnchor, constant: -6), list.bottomAnchor.constraint(equalTo: side.bottomAnchor, constant: -12)])
@@ -133,7 +149,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
         status.font = .systemFont(ofSize: 10); status.textColor = .tertiaryLabelColor
         let toolbar = NSStackView(views: [button("sidebar.left", "显示或隐藏列表", #selector(toggleSidebar)), button("textformat", "文字格式", #selector(showFormat(_:))), button("photo", "插入图片", #selector(insertImage)), button("tablecells", "插入表格", #selector(insertTable)), NSView(), status, button("trash", "删除当前备忘录", #selector(deleteNote))])
         toolbar.orientation = .horizontal; toolbar.spacing = 10; toolbar.translatesAutoresizingMaskIntoConstraints = false; right.addSubview(toolbar)
-        let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.hasHorizontalScroller = false; scroll.autohidesScrollers = true; scroll.drawsBackground = true; scroll.backgroundColor = .textBackgroundColor
+        let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.hasHorizontalScroller = false; scroll.autohidesScrollers = true; scroll.drawsBackground = true; scroll.backgroundColor = MemoTheme.paper
         scroll.translatesAutoresizingMaskIntoConstraints = false; right.addSubview(scroll)
         editor.view.frame = NSRect(x: 0, y: 0, width: 790, height: 600); scroll.documentView = editor.view
         imageSlider.target = self; imageSlider.action = #selector(imageResized); imageSlider.isContinuous = false
@@ -188,6 +204,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
         else { table.deselectAll(nil) }
         suppressSelection = false
     }
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? { MemoRow() }
     func numberOfRows(in tableView: NSTableView) -> Int { filtered.count }
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard filtered.indices.contains(row) else { return nil }
