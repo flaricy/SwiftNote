@@ -4,7 +4,7 @@
 
 ## 安装
 
-1. 从 GitHub Releases 下载 `SwiftNote-1.0.2-macOS-arm64.zip`。下载包适用于 Apple Silicon Mac，最低系统为 macOS 14。
+1. 从 GitHub Releases 下载 `SwiftNote-1.0.3-macOS-arm64.zip`。下载包适用于 Apple Silicon Mac，最低系统为 macOS 14。
 2. 解压后把“随记.app”拖入“应用程序”。
 3. 当前版本尚未经过 Apple 公证。若系统阻止首次打开，在确认下载来源为本仓库后，前往“系统设置 → 隐私与安全性”，找到这次拦截记录并选择“仍要打开”。请不要关闭 Gatekeeper。参考 [Apple 官方说明](https://support.apple.com/102445)。
 

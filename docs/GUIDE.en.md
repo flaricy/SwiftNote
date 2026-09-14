@@ -4,7 +4,7 @@
 
 ## Installation
 
-1. Download `SwiftNote-1.0.2-macOS-arm64.zip` from [GitHub Releases](https://github.com/flaricy/SwiftNote/releases/tag/v1.0.2). Requires Apple Silicon and macOS 14 or later.
+1. Download `SwiftNote-1.0.3-macOS-arm64.zip` from [GitHub Releases](https://github.com/flaricy/SwiftNote/releases/tag/v1.0.3). Requires Apple Silicon and macOS 14 or later.
 2. Unzip it and drag **随记.app** into Applications. 随记 is SwiftNote’s name in Finder; the app’s menus are currently in Chinese.
 3. This release is ad-hoc signed and not Apple-notarized. If macOS blocks it, verify that you downloaded it from this repository and follow [Apple’s Open Anyway instructions](https://support.apple.com/102445) in System Settings → Privacy & Security. Do not disable Gatekeeper.
 

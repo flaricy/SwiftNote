@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.3
+
+- Simplify the sidebar to title and preview, removing timestamps and tightening row spacing.
+- Keep on-demand paragraph timestamps in the editor.
+
+
 ## 1.0.2
 
 - Use the warm paper appearance regardless of the system theme.

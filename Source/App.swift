@@ -18,16 +18,14 @@ final class MemoRow: NSTableRowView {
 final class MemoCell: NSTableCellView {
     let title = NSTextField(labelWithString: "")
     let preview = NSTextField(labelWithString: "")
-    let time = NSTextField(labelWithString: "")
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         title.font = .systemFont(ofSize: 14, weight: .semibold); title.lineBreakMode = .byTruncatingTail
         preview.font = .systemFont(ofSize: 12); preview.textColor = .secondaryLabelColor; preview.lineBreakMode = .byTruncatingTail
-        time.font = .systemFont(ofSize: 10); time.textColor = .tertiaryLabelColor
-        for v in [title, preview, time] { addSubview(v) }
+        for v in [title, preview] { addSubview(v) }
     }
     required init?(coder: NSCoder) { fatalError() }
-    override func layout() { super.layout(); title.frame = NSRect(x: 12, y: 43, width: bounds.width-24, height: 20); preview.frame = NSRect(x: 12, y: 23, width: bounds.width-24, height: 18); time.frame = NSRect(x: 12, y: 6, width: bounds.width-24, height: 14) }
+    override func layout() { super.layout(); title.frame = NSRect(x: 18, y: 32, width: bounds.width-36, height: 20); preview.frame = NSRect(x: 18, y: 12, width: bounds.width-36, height: 18) }
 }
 final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate {
     var store: NoteStore!
@@ -121,7 +119,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
         head.translatesAutoresizingMaskIntoConstraints = false; side.addSubview(head)
         search.placeholderString = "搜索"; search.delegate = self; search.font = .systemFont(ofSize: 12); search.controlSize = .small; search.translatesAutoresizingMaskIntoConstraints = false; search.setAccessibilityLabel("搜索备忘录")
         let list = NSScrollView(); list.hasVerticalScroller = true; list.drawsBackground = true; list.backgroundColor = MemoTheme.sidebar; list.contentView.drawsBackground = true; list.contentView.backgroundColor = MemoTheme.sidebar; list.translatesAutoresizingMaskIntoConstraints = false; side.addSubview(list)
-        table.headerView = nil; table.backgroundColor = MemoTheme.sidebar; table.rowHeight = 75; table.intercellSpacing = NSSize(width: 0, height: 2); table.selectionHighlightStyle = .regular
+        table.headerView = nil; table.backgroundColor = MemoTheme.sidebar; table.rowHeight = 62; table.intercellSpacing = NSSize(width: 0, height: 2); table.selectionHighlightStyle = .regular
         table.style = .plain; table.delegate = self; table.dataSource = self
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("note")); column.resizingMask = .autoresizingMask; table.addTableColumn(column)
         list.documentView = table
@@ -211,7 +209,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard filtered.indices.contains(row) else { return nil }
         let cell = MemoCell(); let note = filtered[row]
-        cell.title.stringValue = note.title; cell.preview.stringValue = note.preview.isEmpty ? "空白备忘录" : note.preview; cell.time.stringValue = dates.string(from: note.modified)
+        cell.title.stringValue = note.title; cell.preview.stringValue = note.preview.isEmpty ? "空白备忘录" : note.preview
         return cell
     }
     func tableViewSelectionDidChange(_ notification: Notification) {
