@@ -72,7 +72,6 @@ orderRows.forEach((row, index) => {
     if (event.key === 'Escape') { row.classList.add('is-dismissed'); row.classList.remove('is-expanded'); time.setAttribute('aria-expanded', 'false'); row.querySelector('.order-select').focus(); }
   });
 });
-document.querySelector('#reset-orders').addEventListener('click', () => chooseOrder(0));
 document.addEventListener('click', event => {
   if (!event.target.closest('.order-row')) orderRows.forEach(row => { row.classList.remove('is-expanded'); row.querySelector('.order-time').setAttribute('aria-expanded', 'false'); });
 });
