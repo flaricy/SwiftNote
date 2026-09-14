@@ -1,0 +1,41 @@
+# 使用随记
+
+## 安装
+
+1. 从 GitHub Releases 下载 `SwiftNote-1.0.0-macOS-arm64.zip`。下载包适用于 Apple Silicon Mac，最低系统为 macOS 14。
+2. 解压后把“随记.app”拖入“应用程序”。
+3. 当前版本尚未经过 Apple 公证。若系统阻止首次打开，在确认下载来源为本仓库后，前往“系统设置 → 隐私与安全性”，找到这次拦截记录并选择“仍要打开”。请不要关闭 Gatekeeper。参考 [Apple 官方说明](https://support.apple.com/102445)。
+
+随记自身不需要辅助功能或屏幕录制权限。全局快捷键 `⌃⌥N` 在应用运行时有效；如被其他应用占用，可使用菜单栏按钮。
+
+## 写与整理
+
+打开直接恢复上次备忘录。第一行是普通正文；在行首输入 `# ` 到 `#### ` 才变成标题。`/` 可打开插入菜单；方向键选择、回车确认，Esc 关闭。输入字母或中文关键词可过滤选项。
+
+选中文字，空白处会显示格式工具；空间不足时使用顶部 Aa。Aa 内可设置段落、字体、字号。`⌘B`、`⌘I`、`⌘U` 分别切换粗体、斜体和下划线。支持 `**粗体**`、`*斜体*`、行内代码和常用 Markdown 粘贴。
+
+`- ` 开始列表，`1. ` 开始编号，`[] ` 开始待办。回车继续列表，再次回车结束空列表项。空标题或列表开头按退格恢复正文。点击待办方框改变状态。
+
+图片支持粘贴、拖入和工具栏插入。点击图片后，用底部滑杆等比缩放；连续插图后可继续写正文。为控制备忘录体积，导入图片会转换成 PNG，长边最多 2400 像素。
+
+表格按钮可以选择初始行列数。Tab / Shift-Tab 切换单元格，右键插入或删除当前行。
+
+## 修改时间
+
+点击正文后，仅光标所在显示行的行尾出现修改时间；空间不足时显示小钟。悬停立即查看完整日期。打开或切换备忘录时默认隐藏。
+
+时间按段落维护，自然折行共享同一个段落时间；表格同一显示行取最近的对应单元格修改时间。这不是逐字历史或版本恢复功能。
+
+## 保存与导出
+
+内容会自动保存；切换、关闭和退出时会完成待保存内容。可以通过“文件 → 导出富文本”导出 RTFD。
+
+数据位置：`~/Library/Application Support/LocalNotes/`。可用“文件 → 显示本地数据”打开。该目录名保留以兼容早期版本；每篇 RTFD 文档加一个 JSON 索引。备份时请在退出应用后复制整个目录。
+
+文档和索引分别原子写入，并不是跨文件事务。保存失败时应用保留未保存内容并提示。删除的原文件保留在 `Deleted/` 子目录；没有内置垃圾箱界面。文件没有额外应用层加密。
+
+## English installation
+
+Download the arm64 ZIP from GitHub Releases, unzip it, and move 随记.app to Applications. Requires Apple Silicon and macOS 14+. The release is ad-hoc signed, not Apple-notarized. If macOS blocks the first launch, verify the source and follow [Apple's Open Anyway instructions](https://support.apple.com/102445) in System Settings → Privacy & Security. Do not disable Gatekeeper.
+
+The app needs no Accessibility or Screen Recording permission. Notes are stored at `~/Library/Application Support/LocalNotes/`. Quit the app and copy the entire directory for a backup. Export individual notes as RTFD from the File menu.
