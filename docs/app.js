@@ -2,20 +2,48 @@ const tabs = [...document.querySelectorAll('[data-scene]')];
 const picture = document.querySelector('#scene-image');
 const panel = document.querySelector('#scene');
 const images = ['orders.png', 'editor.png', 'selection.png', 'dark.png'];
-function select(index) {
-  tabs.forEach((tab, i) => { tab.setAttribute('aria-selected', String(i === index)); tab.tabIndex = i === index ? 0 : -1; });
-  picture.src = `assets/${images[index]}`;
-  picture.alt = tabs[index].textContent;
+let requestVersion = 0;
+let displayedIndex = 0;
+function markSelection(index) {
+  tabs.forEach((tab, i) => {
+    tab.setAttribute('aria-selected', String(i === index));
+    tab.tabIndex = i === index ? 0 : -1;
+  });
   panel.setAttribute('aria-labelledby', tabs[index].id);
+}
+async function select(index) {
+  const version = ++requestVersion;
+  markSelection(index);
+  panel.setAttribute('aria-busy', 'true');
+  const next = new Image();
+  next.src = `assets/${images[index]}`;
+  try {
+    await next.decode();
+    if (version !== requestVersion) return;
+    picture.src = next.src;
+    picture.alt = tabs[index].textContent;
+    if (displayedIndex !== index && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      picture.getAnimations().forEach(animation => animation.cancel());
+      picture.animate([{ opacity: 0.65 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
+    }
+    displayedIndex = index;
+  } catch {
+    if (version === requestVersion) markSelection(displayedIndex);
+  } finally {
+    if (version === requestVersion) panel.setAttribute('aria-busy', 'false');
+  }
 }
 tabs.forEach((tab, index) => {
   tab.tabIndex = index === 0 ? 0 : -1;
   tab.addEventListener('click', () => select(index));
   tab.addEventListener('keydown', event => {
-    const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-    if (!offset) return;
-    event.preventDefault(); const next = (index + offset + tabs.length) % tabs.length;
-    select(next); tabs[next].focus();
+    let next;
+    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault(); select(next); tabs[next].focus();
   });
 });
 
