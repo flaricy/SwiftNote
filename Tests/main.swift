@@ -99,4 +99,122 @@ check(editor.view.string == "Title", "later backspace cannot restore stale headi
 fresh(); fast("##### text")
 check(editor.view.string == "##### text", "unsupported heading level stays literal")
 
+try MainActor.assumeIsolated {
+    let formula = MathFormula(latex: "\\frac{a}{b} + x^2", block: false)
+    let attachment = try formula.attachment()
+    check(MathFormula.read(attachment) == formula, "formula attachment retains LaTeX source")
+    let archived = try NSKeyedArchiver.archivedData(withRootObject: attachment.attachmentCell!, requiringSecureCoding: false)
+    let decoded = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(archived) as? FormulaAttachmentCell
+    check(decoded != nil && decoded?.cellSize() == attachment.attachmentCell?.cellSize(), "formula cell supports AppKit archiving")
+    let rich = NSAttributedString(attachment: attachment)
+    let data = try rich.data(from: NSRange(location: 0, length: rich.length), documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd])
+    let reopened = try NSAttributedString(data: data, options: [.documentType: NSAttributedString.DocumentType.rtfd], documentAttributes: nil)
+    check(MathFormula.read(reopened.attribute(.attachment, at: 0, effectiveRange: nil) as! NSTextAttachment) == formula, "RTFD formula source survives reopening")
+    fresh("before after"); try editor.insertFormula(formula, replacing: NSRange(location: 7, length: 0))
+    check(editor.view.string == "before \u{fffc}after", "inline formula keeps adjacent text")
+    fresh("before after"); try editor.insertFormula(MathFormula(latex: "x^2", block: true), replacing: NSRange(location: 7, length: 0))
+    check(editor.view.string == "before \n\u{fffc}\nafter", "block formula has paragraph boundaries")
+    var rejected = false
+    do { _ = try MathFormula(latex: "\\notAValidCommand", block: false).attachment() } catch { rejected = true }
+    check(rejected, "invalid LaTeX is rejected before changing document")
+}
+var requestedFormula: (Bool, NSRange)?
+editor.requestFormula = { requestedFormula = ($0, $1) }
+fresh(); fast("/math-inline"); fast("\n")
+check(requestedFormula?.0 == false && editor.view.string == "/math-inline", "formula command keeps source until confirmed")
+
+try MainActor.assumeIsolated {
+    fresh("prefix suffix")
+    window.makeFirstResponder(editor.view)
+    let undo = editor.view.undoManager!
+    undo.groupsByEvent = false
+    undo.beginUndoGrouping()
+    try editor.insertFormula(MathFormula(latex: "x^2", block: true), replacing: NSRange(location: 7, length: 0))
+    undo.endUndoGrouping()
+    let withFormula = editor.view.string
+    undo.undo()
+    check(editor.view.string == "prefix suffix", "formula insertion undoes as one edit")
+    undo.redo()
+    check(editor.view.string == withFormula, "formula insertion can be redone")
+    undo.groupsByEvent = true
+    fresh()
+    let long = MathFormula(latex: String(repeating: "x_1+x_2+", count: 12) + "x_n", block: true)
+    try editor.insertFormula(long, replacing: NSRange(location: 0, length: 0))
+    let beforeResize = fingerprints(editor.view.attributedString())
+    editor.view.setFrameSize(NSSize(width: 350, height: 700))
+    let attachment = editor.view.textStorage!.attribute(.attachment, at: 0, effectiveRange: nil) as! NSTextAttachment
+    check(attachment.attachmentCell!.cellSize().width <= 294, "long formula fits narrow editor")
+    check(beforeResize == fingerprints(editor.view.attributedString()), "resizing formula does not change line identity")
+    fresh(); editor.insertTable(rows: 2, columns: 2)
+    try editor.insertFormula(MathFormula(latex: "a/b", block: false), replacing: NSRange(location: 1, length: 0))
+    check(!(editor.view.textStorage!.attribute(.paragraphStyle, at: 1, effectiveRange: nil) as! NSParagraphStyle).textBlocks.isEmpty, "inline formula preserves its table cell")
+    editor.beginFormulaEditing(block: false, range: NSRange(location: 1, length: 1))
+    editor.formulaDraft?.input.stringValue = ""
+    check(editor.finishFormulaEditing(cancel: false), "empty inline formula can be deleted in a table")
+    check(!(editor.view.typingAttributes[.paragraphStyle] as! NSParagraphStyle).textBlocks.isEmpty, "deleting empty formula preserves table typing attributes")
+    check(!(editor.view.textStorage!.attribute(.paragraphStyle, at: 1, effectiveRange: nil) as! NSParagraphStyle).textBlocks.isEmpty, "deleting empty formula preserves table cell")
+    fresh("before /math-inline after")
+    editor.beginFormulaEditing(block: false, range: NSRange(location: 7, length: 12))
+    check(editor.formulaDraft != nil && !editor.view.isEditable, "formula source expands in the document")
+    editor.formulaDraft?.input.stringValue = "\\frac{1}{2}"; editor.formulaDraft?.refresh()
+    check(editor.finishFormulaEditing(cancel: false), "valid inline source commits")
+    check(editor.view.string == "before \u{fffc} after", "in-place commit preserves surrounding text")
+    fresh("before /math-inline after")
+    editor.beginFormulaEditing(block: false, range: NSRange(location: 7, length: 12))
+    editor.formulaDraft?.input.stringValue = "\\invalidcommand"; editor.formulaDraft?.refresh()
+    check(!editor.finishFormulaEditing(cancel: false), "invalid draft remains editable")
+    check(editor.finishFormulaEditing(cancel: true) && editor.view.string == "before /math-inline after", "escape restores original source exactly")
+}
+try MainActor.assumeIsolated {
+    fresh("M M M M M M M M M M M M ")
+    editor.view.setFrameSize(NSSize(width: 300, height: 700))
+    try editor.insertFormula(MathFormula(latex: "x^2+y^2=r^2", block: false), replacing: NSRange(location: 24, length: 0))
+    let layout = editor.view.layoutManager!, container = editor.view.textContainer!
+    layout.ensureLayout(for: container)
+    let before = layout.lineFragmentRect(forGlyphAt: layout.glyphIndexForCharacter(at: 22), effectiveRange: nil)
+    let formulaLine = layout.lineFragmentRect(forGlyphAt: layout.glyphIndexForCharacter(at: 24), effectiveRange: nil)
+    check(formulaLine.minY >= before.maxY-1, "inline formula wraps when the remaining line cannot fit it")
+    fresh("before\n/math-block\nafter")
+    editor.beginFormulaEditing(block: true, range: NSRange(location: 7, length: 11))
+    editor.formulaDraft?.input.stringValue = "\\frac{a}{b}"; editor.formulaDraft?.refresh()
+    let draft = editor.formulaDraft!
+    layout.ensureLayout(for: container)
+    let following = layout.boundingRect(forGlyphRange: layout.glyphRange(forCharacterRange: NSRange(location: 9, length: 5), actualCharacterRange: nil), in: container).offsetBy(dx: editor.view.textContainerOrigin.x, dy: editor.view.textContainerOrigin.y)
+    check(following.minY >= draft.frame.maxY-1, "in-place block editor never covers the following paragraph")
+    check(draft.sourceEditor.undoManager !== editor.view.undoManager, "formula source has an independent undo history")
+    _ = editor.finishFormulaEditing(cancel: true)
+}
+try MainActor.assumeIsolated {
+    fresh()
+    try editor.insertFormula(MathFormula(latex: "x^2", block: true), replacing: NSRange(location: 0, length: 0))
+    editor.view.insertNewline(nil); fast("left aligned")
+    let bodyStyle = editor.view.textStorage!.attribute(.paragraphStyle, at: editor.view.string.utf16.count-1, effectiveRange: nil) as! NSParagraphStyle
+    check(bodyStyle.alignment != .center, "Return after block formula starts left aligned body")
+    fresh("/math-block")
+    editor.beginFormulaEditing(block: true, range: NSRange(location: 0, length: 11))
+    let draft = editor.formulaDraft!
+    _ = draft.control(draft.input, textView: draft.sourceEditor, doCommandBy: #selector(NSResponder.deleteBackward(_:)))
+    check(editor.formulaDraft == nil && editor.view.string.isEmpty && editor.view.isEditable, "Backspace deletes an empty formula block")
+    fresh("before\n/math-block\nafter")
+    editor.beginFormulaEditing(block: true, range: NSRange(location: 7, length: 11))
+    check(editor.finishFormulaEditing(cancel: false) && editor.view.string == "before\n\nafter", "leaving an empty formula removes it without blocking navigation")
+}
+do {
+    let suite = "SwiftNote.LanguageTests." + UUID().uuidString
+    let defaults = UserDefaults(suiteName: suite)!
+    let original = Localization.preferences
+    Localization.preferences = defaults
+    defer { Localization.preferences = original; defaults.removePersistentDomain(forName: suite) }
+    check(Localization.language == .english, "interface defaults to English")
+    let english = editor.allCommands
+    check(english[11].0 == "Inline Math" && english[12].0 == "Block Math", "slash commands default to English")
+    let content = editor.view.attributedString()
+    Localization.language = .chinese
+    check(editor.allCommands[11].0 == "行内公式" && L("设置") == "设置", "language change updates command names immediately")
+    check(editor.allCommands.map { $0.1 } == english.map { $0.1 } && editor.allCommands.map { $0.2 } == english.map { $0.2 }, "language preserves command aliases and actions")
+    check(editor.view.attributedString().isEqual(to: content), "switching language preserves memo content")
+    check(UserDefaults(suiteName: suite)?.string(forKey: "interfaceLanguage") == "zh-Hans", "language preference persists")
+    Localization.language = .english
+    check(L("设置") == "Settings", "switching back restores English")
+}
 print("ALL TESTS PASSED")

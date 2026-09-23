@@ -4,7 +4,7 @@
 
 ## 安装
 
-1. 从 GitHub Releases 下载 `SwiftNote-1.0.3-macOS-arm64.zip`。下载包适用于 Apple Silicon Mac，最低系统为 macOS 14。
+1. 从 GitHub Releases 下载 `SwiftNote-1.1.0-macOS-arm64.zip`。下载包适用于 Apple Silicon Mac，最低系统为 macOS 14。
 2. 解压后把“随记.app”拖入“应用程序”。
 3. 当前版本尚未经过 Apple 公证。若系统阻止首次打开，在确认下载来源为本仓库后，前往“系统设置 → 隐私与安全性”，找到这次拦截记录并选择“仍要打开”。请不要关闭 Gatekeeper。参考 [Apple 官方说明](https://support.apple.com/102445)。
 
@@ -41,3 +41,13 @@
 数据位置：`~/Library/Application Support/LocalNotes/`。可用“文件 → 显示本地数据”打开。该目录名保留以兼容早期版本；每篇 RTFD 文档加一个 JSON 索引。备份时请在退出应用后复制整个目录。
 
 文档和索引分别原子写入，并不是跨文件事务。保存失败时应用保留未保存内容并提示。删除的原文件保留在 `Deleted/` 子目录；没有内置垃圾箱界面。文件没有额外应用层加密。
+
+## 数学公式
+
+输入 `/math-inline` 可在句中插入公式，输入 `/math-block` 可插入独立公式，然后按回车。在正文原位置输入 LaTeX，效果即时呈现。回车完成，Esc 取消并保留原命令；点击已插入的公式可就地展开源码。编辑区占用实际排版空间，不遮挡前后文字。
+
+渲染完全离线，LaTeX 源码随 RTFD 附件保存。支持常见数学 LaTeX，不是完整 TeX 文档编译器，也不支持任意宏包。表格单元格中请使用行内公式。长公式会缩放以适应编辑区，源码不会改变。
+
+## 界面语言
+
+通过 **SwiftNote → Settings…（⌘,）→ Language** 选择 English 或中文，立即生效并保存。默认英文，斜杠菜单随界面语言切换；命令写法与备忘录内容保持不变。

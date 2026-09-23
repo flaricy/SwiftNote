@@ -3,7 +3,7 @@
 <p align="center"><img src="docs/assets/app-icon.png" width="76" alt="随记图标"></p>
 <h1 align="center">SwiftNote · 随记</h1>
 <p align="center">念头一闪，随手记下。<br><sub>A thought, a note. Nothing in the way.</sub></p>
-<p align="center"><a href="https://github.com/flaricy/SwiftNote/releases/download/v1.0.3/SwiftNote-1.0.3-macOS-arm64.zip"><b>↓ 下载 macOS 版</b></a>　·　<a href="https://flaricy.github.io/SwiftNote/">网站 / Website ↗</a></p>
+<p align="center"><a href="https://github.com/flaricy/SwiftNote/releases/download/v1.1.0/SwiftNote-1.1.0-macOS-arm64.zip"><b>↓ 下载 macOS 版</b></a>　·　<a href="https://flaricy.github.io/SwiftNote/">网站 / Website ↗</a></p>
 <p align="center"><sub>Apple Silicon · macOS 14+ · 免费开源 · MIT</sub></p>
 
 [![随记实际界面：账单行末尾按需显示修改时间](docs/assets/orders.png)](https://flaricy.github.io/SwiftNote/)
@@ -27,6 +27,7 @@
 | 新建一条 | `⌘N`，或菜单栏书写按钮 |
 | 在其他应用中快速新建 | `⌃⌥N`（随记运行时） |
 | 插入内容 | 空行输入 `/`，输入关键词，方向键选择、回车确认 |
+| 数学公式 | `/math-inline` 或 `/math-block`；点击公式就地编辑 |
 | 四级标题 | `# `、`## `、`### `、`#### ` |
 | 粗体 / 斜体 / 下划线 | `⌘B` / `⌘I` / `⌘U` |
 | 待办 | 输入 `[] `，点击方框切换完成状态 |
@@ -35,7 +36,7 @@
 
 ### 为一条备忘录，保持轻量。
 
-Swift + AppKit + TextKit，无 WebView、第三方运行时或网络请求。不需要账户，也不使用云服务。数据保存在本机，可导出 RTFD。
+Swift + AppKit + TextKit，无 WebView、第三方运行时或网络请求。公式由内置 SwiftMath 离线渲染。不需要账户，也不使用云服务。数据保存在本机，可导出 RTFD。
 
 支持常用 Markdown 快捷输入和粘贴，不是完整 Markdown 文件编辑器。修改时间按段落记录，自动折行共享时间，不提供历史版本恢复。图片缩放使用滑杆，表格使用原生文本单元格。
 
@@ -43,7 +44,7 @@ Swift + AppKit + TextKit，无 WebView、第三方运行时或网络请求。不
 
 ### 从源码构建
 
-安装 Xcode Command Line Tools 后：
+安装完整 Xcode 并完成首次启动后：
 
 ```sh
 git clone https://github.com/flaricy/SwiftNote.git

@@ -5,3 +5,5 @@ dist/
 *.dSYM/
 .swiftpm/
 .build/
+
+xcuserdata/

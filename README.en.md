@@ -3,7 +3,7 @@
 <p align="center"><img src="docs/assets/app-icon.png" width="76" alt="SwiftNote icon"></p>
 <h1 align="center">SwiftNote</h1>
 <p align="center">A thought, a note. Nothing in the way.</p>
-<p align="center"><a href="https://github.com/flaricy/SwiftNote/releases/download/v1.0.3/SwiftNote-1.0.3-macOS-arm64.zip"><b>↓ Download for macOS</b></a> · <a href="https://flaricy.github.io/SwiftNote/en.html">Website ↗</a></p>
+<p align="center"><a href="https://github.com/flaricy/SwiftNote/releases/download/v1.1.0/SwiftNote-1.1.0-macOS-arm64.zip"><b>↓ Download for macOS</b></a> · <a href="https://flaricy.github.io/SwiftNote/en.html">Website ↗</a></p>
 <p align="center"><sub>Apple Silicon · macOS 14+ · Free & open source · MIT</sub></p>
 
 [![A purchase note with its latest edit time beside the text](docs/assets/orders-en.png)](https://flaricy.github.io/SwiftNote/en.html#order-time)
@@ -27,6 +27,7 @@ SwiftNote is a small native macOS memo app. Open straight into your last note, o
 | Create a note | `⌘N` or the menu bar compose button |
 | Create from another app | `⌃⌥N`, while SwiftNote is running |
 | Insert content | `/` on an empty line, then arrow keys and Return |
+| Math | `/math-inline` or `/math-block`; click a formula to edit in place |
 | Add one of four heading levels | `# `, `## `, `### `, `#### ` |
 | Bold / italic / underline | `⌘B` / `⌘I` / `⌘U` |
 | Add a checklist | `[] `; click a box to toggle it |
@@ -35,13 +36,13 @@ SwiftNote is a small native macOS memo app. Open straight into your last note, o
 
 ### Small by design
 
-Built with Swift, AppKit, and TextKit. No WebView, third-party runtime, account, network requests, or cloud sync. Notes are saved locally and can be exported as RTFD.
+Built with Swift, AppKit, and TextKit. No WebView, third-party runtime, account, network requests, or cloud sync. Math is rendered offline using the bundled SwiftMath library. Notes are saved locally and can be exported as RTFD.
 
 SwiftNote supports common Markdown input shortcuts and paste, rather than full Markdown file editing. Timestamps belong to paragraphs: wrapped lines share a time. There is no version history. Images resize with a slider; tables use native text cells.
 
 ### Build from source
 
-Install Xcode Command Line Tools, then:
+Install the full Xcode app and complete its first launch, then:
 
 ```sh
 git clone https://github.com/flaricy/SwiftNote.git

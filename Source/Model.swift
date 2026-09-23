@@ -25,6 +25,7 @@ struct NoteInfo: Codable {
     var lines: [LineRecord]
     var images: [ImageLayout]? = nil
 }
+
 func sha(_ string: String) -> String { SHA256.hash(data: Data(string.utf8)).map { String(format: "%02x", $0) }.joined() }
 func paragraphRanges(_ string: String) -> [NSRange] {
     let s = string as NSString
@@ -50,8 +51,12 @@ func fingerprints(_ text: NSAttributedString) -> [String] {
             if let u = a[.underlineStyle] as? Int { p += "|u\(u)" }
             if let u = a[.strikethroughStyle] as? Int { p += "|s\(u)" }
             if let t = a[.attachment] as? NSTextAttachment {
-                p += "|img:\(t.fileWrapper?.preferredFilename ?? ""):\(t.bounds.width):\(t.bounds.height)"
-                if let cell = t.attachmentCell { p += "|cell:\(cell.cellSize().width):\(cell.cellSize().height)" }
+                if let formula = MathFormula.read(t) {
+                    p += "|math:\(formula.block):\(formula.latex)"
+                } else {
+                    p += "|img:\(t.fileWrapper?.preferredFilename ?? ""):\(t.bounds.width):\(t.bounds.height)"
+                    if let cell = t.attachmentCell { p += "|cell:\(cell.cellSize().width):\(cell.cellSize().height)" }
+                }
             }
             parts.append(p)
         }
@@ -68,6 +73,7 @@ func reconcile(_ old: [LineRecord], _ hashes: [String], now: Date) -> [LineRecor
     }
     return result
 }
+
 final class NoteStore {
     let root: URL
     var notes: [NoteInfo] = []
@@ -81,7 +87,7 @@ final class NoteStore {
     func load(_ id: UUID) throws -> NSAttributedString {
         let path = documentURL(id)
         guard FileManager.default.fileExists(atPath: path.path) else {
-            throw NSError(domain: "LocalNotes", code: 1, userInfo: [NSLocalizedDescriptionKey: "笔记文件缺失，已停止载入，避免覆盖原数据。"])
+            throw NSError(domain: "LocalNotes", code: 1, userInfo: [NSLocalizedDescriptionKey: L("笔记文件缺失，已停止载入，避免覆盖原数据。")])
         }
         let result = try NSMutableAttributedString(data: Data(contentsOf: path), options: [.documentType: NSAttributedString.DocumentType.rtfd], documentAttributes: nil)
         // RTFD stores resolved RGB values; restore semantic editor colors after reopening.
@@ -104,8 +110,8 @@ final class NoteStore {
             defer { index += 1 }
             if layouts.indices.contains(index), let data = attachment.fileWrapper?.regularFileContents, let image = NSImage(data: data) {
                 let layout = layouts[index]
-                attachment.bounds = NSRect(x: 0, y: 0, width: layout.width, height: layout.height)
-                image.size = attachment.bounds.size; attachment.attachmentCell = NSTextAttachmentCell(imageCell: image)
+                attachment.bounds = NSRect(x: 0, y: MathFormula.read(attachment)?.block == false ? -layout.height * MathFormula.baselineRatio(data) : 0, width: layout.width, height: layout.height)
+                image.size = attachment.bounds.size; attachment.attachmentCell = MathFormula.read(attachment) == nil ? NSTextAttachmentCell(imageCell: image) : FormulaAttachmentCell(image: image, baselineRatio: MathFormula.baselineRatio(data))
             }
         }
         return result
@@ -118,7 +124,7 @@ final class NoteStore {
         let now = Date(); let id = UUID()
         let doc = NSAttributedString(string: "", attributes: bodyAttributes())
         try saveDocument(doc, id: id)
-        notes.insert(NoteInfo(id: id, created: now, modified: now, title: "新备忘录", preview: "", searchable: "", lines: []), at: 0)
+        notes.insert(NoteInfo(id: id, created: now, modified: now, title: L("新备忘录"), preview: "", searchable: "", lines: []), at: 0)
         try persistIndex(); return id
     }
     func saveDocument(_ text: NSAttributedString, id: UUID) throws {
@@ -128,11 +134,20 @@ final class NoteStore {
     func update(id: UUID, text: NSAttributedString, lines: [LineRecord], date: Date) throws {
         guard let i = notes.firstIndex(where: { $0.id == id }) else { return }
         try saveDocument(text, id: id)
-        let content = text.string.replacingOccurrences(of: "\u{fffc}", with: "[图片]")
+        let previewText = NSMutableString(string: text.string)
+        var formulaSources: [String] = []
+        text.enumerateAttribute(.attachment, in: NSRange(location: 0, length: text.length), options: .reverse) { value, range, _ in
+            if let attachment = value as? NSTextAttachment {
+                let formula = MathFormula.read(attachment)
+                if let formula { formulaSources.append(formula.latex) }
+                previewText.replaceCharacters(in: range, with: formula == nil ? L("[图片]") : L("[公式]"))
+            }
+        }
+        let content = previewText as String
         let paragraphs = content.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        notes[i].title = String((paragraphs.first ?? "新备忘录").prefix(70))
+        notes[i].title = String((paragraphs.first ?? L("新备忘录")).prefix(70))
         notes[i].preview = String(paragraphs.dropFirst().joined(separator: " ").prefix(140))
-        notes[i].searchable = content
+        notes[i].searchable = content + (formulaSources.isEmpty ? "" : "\n" + formulaSources.joined(separator: "\n"))
         notes[i].modified = date; notes[i].lines = lines
         var layouts: [ImageLayout] = []
         text.enumerateAttribute(.attachment, in: NSRange(location: 0, length: text.length)) { value, _, _ in

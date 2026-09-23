@@ -16,6 +16,9 @@ final class NoteTextView: NSTextView, NSViewToolTipOwner {
     var recordRanges: [NSRange] = []
     var showTimes = true { didSet { resizeContainer(); needsDisplay = true } }
     var hasClickedLine = false { didSet { timeOverlay.needsDisplay = true } }
+    var onFinishFormula: (() -> Bool)?
+    var onFormulaLayout: (() -> Void)?
+    var onEditFormula: ((Int) -> Void)?
     var onImageSelected: ((NSTextAttachment?) -> Void)?
     var onPasteImage: ((NSImage) -> Void)?
     var onPastePlainText: ((String) -> Bool)?
@@ -31,7 +34,7 @@ final class NoteTextView: NSTextView, NSViewToolTipOwner {
         if at < (string as NSString).length, let p = textStorage?.attribute(.paragraphStyle, at: at, effectiveRange: nil) as? NSParagraphStyle, !p.textBlocks.isEmpty {
             setSelectedRange(NSRange(location: at, length: 0))
             menu.addItem(.separator())
-            for (title, action) in [("在下方插入一行", #selector(addRow)), ("删除这一行", #selector(removeRow))] { let item = NSMenuItem(title: title, action: action, keyEquivalent: ""); item.target = self; menu.addItem(item) }
+            for (title, action) in [(L("在下方插入一行"), #selector(addRow)), (L("删除这一行"), #selector(removeRow))] { let item = NSMenuItem(title: title, action: action, keyEquivalent: ""); item.target = self; menu.addItem(item) }
         }
         return menu
     }
@@ -83,13 +86,31 @@ final class NoteTextView: NSTextView, NSViewToolTipOwner {
     override func setFrameSize(_ newSize: NSSize) { super.setFrameSize(newSize); resizeContainer() }
     func resizeContainer() {
         timeOverlay.needsDisplay = true
+        defer { onFormulaLayout?() }
         textContainer?.widthTracksTextView = false
-        textContainer?.containerSize = NSSize(width: max(100, bounds.width - textContainerInset.width*2), height: .greatestFiniteMagnitude)
+        let available = max(100, bounds.width - textContainerInset.width*2)
+        textContainer?.containerSize = NSSize(width: available, height: .greatestFiniteMagnitude)
+        textStorage?.enumerateAttribute(.attachment, in: NSRange(location: 0, length: textStorage?.length ?? 0)) { value, range, _ in
+            guard let attachment = value as? NSTextAttachment else { return }
+            MathFormula.restoreCell(attachment)
+            guard let cell = attachment.attachmentCell as? FormulaAttachmentCell else { return }
+            var lineWidth = available-12
+            if let style = textStorage?.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle,
+               let block = style.textBlocks.first as? NSTextTableBlock {
+                lineWidth = max(32, available * CGFloat(block.columnSpan) / CGFloat(max(1, block.table.numberOfColumns)) - 24)
+            }
+            let width = min(cell.naturalSize.width, lineWidth)
+            let size = NSSize(width: width, height: cell.naturalSize.height * width / max(1, cell.naturalSize.width))
+            if cell.image?.size != size {
+                cell.image?.size = size; attachment.bounds.size = size
+                layoutManager?.invalidateLayout(forCharacterRange: range, actualCharacterRange: nil)
+            }
+        }
     }
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect); timeOverlay.needsDisplay = true
         if string.isEmpty, !hasMarkedText() {
-            ("写点什么，或输入 /" as NSString).draw(at: NSPoint(x: textContainerOrigin.x+5, y: textContainerOrigin.y), withAttributes: [.font: NSFont.systemFont(ofSize: 16), .foregroundColor: NSColor.placeholderTextColor])
+            (L("写点什么，或输入 /") as NSString).draw(at: NSPoint(x: textContainerOrigin.x+5, y: textContainerOrigin.y), withAttributes: [.font: NSFont.systemFont(ofSize: 16), .foregroundColor: NSColor.placeholderTextColor])
         }
     }
     func drawTimes(_ dirtyRect: NSRect) {
@@ -178,9 +199,22 @@ final class NoteTextView: NSTextView, NSViewToolTipOwner {
     func view(_ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint, userData data: UnsafeMutableRawPointer?) -> String {
         let index = Int(bitPattern: data)-1
         guard datesForTooltips.indices.contains(index) else { return "" }
-        return "最近修改：" + fullDate.string(from: datesForTooltips[index])
+        return L("最近修改：") + fullDate.string(from: datesForTooltips[index])
     }
     override func mouseDown(with event: NSEvent) {
+        guard onFinishFormula?() != false else { return }
+        if event.clickCount >= 1 {
+            let at = characterIndexForInsertion(at: convert(event.locationInWindow, from: nil))
+            for index in [at, at-1] where index >= 0 && index < (textStorage?.length ?? 0) {
+                if let attachment = textStorage?.attribute(.attachment, at: index, effectiveRange: nil) as? NSTextAttachment, MathFormula.read(attachment) != nil {
+                    if let lm = layoutManager, let tc = textContainer {
+                        let glyph = lm.glyphRange(forCharacterRange: NSRange(location: index, length: 1), actualCharacterRange: nil)
+                        let rect = lm.boundingRect(forGlyphRange: glyph, in: tc).offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y)
+                        if rect.contains(convert(event.locationInWindow, from: nil)) { onEditFormula?(index); return }
+                    }
+                }
+            }
+        }
         hasClickedLine = true
         let point = convert(event.locationInWindow, from: nil)
         if let lm = layoutManager, let tc = textContainer, lm.numberOfGlyphs > 0 {
@@ -196,6 +230,7 @@ final class NoteTextView: NSTextView, NSViewToolTipOwner {
         else { onImageSelected?(nil) }
     }
     override func paste(_ sender: Any?) {
+        guard onFinishFormula?() != false else { return }
         let board = NSPasteboard.general
         if board.data(forType: .rtfd) == nil, board.data(forType: .rtf) == nil, let text = board.string(forType: .string), onPastePlainText?(text) == true { return }
         if let images = NSPasteboard.general.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage], let image = images.first,
@@ -203,6 +238,7 @@ final class NoteTextView: NSTextView, NSViewToolTipOwner {
         super.paste(sender)
     }
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard onFinishFormula?() != false else { return false }
         let pb = sender.draggingPasteboard
         if let urls = pb.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] {
             let images = urls.compactMap { NSImage(contentsOf: $0) }
@@ -228,6 +264,10 @@ final class CommandButton: NSButton {
     }
 }
 
+final class CommandListView: NSView {
+    override var isFlipped: Bool { true }
+}
+
 final class EditorSurface: NSView {
     override var isFlipped: Bool { true }
     override func draw(_ dirtyRect: NSRect) {
@@ -241,12 +281,17 @@ final class EditorController: NSObject, NSTextViewDelegate {
     let view = NoteTextView(frame: .zero)
     var didEdit: (() -> Void)?
     var requestImage: (() -> Void)?
+    var formulaDraft: FormulaEditor?
+    var positioningFormulaDraft = false
+    var requestFormula: ((Bool, NSRange) -> Void)?
     let commandPalette = EditorSurface()
+    let commandList = CommandListView()
+    let commandScroll = NSScrollView()
     let selectionTools = EditorSurface()
     var slashRange: NSRange?
     var commandIndex = 0
     var commandItems: [(String, String, Int)] = []
-    let allCommands: [(String, String, Int)] = [("正文", "text", 0), ("标题 1", "h1 heading", 1), ("标题 2", "h2 heading", 2), ("标题 3", "h3 heading", 3), ("标题 4", "h4 heading", 4), ("项目列表", "bullet list", 5), ("待办事项", "todo checkbox", 6), ("编号列表", "number list", 7), ("引用", "quote", 8), ("表格", "table", 9), ("图片", "image photo", 10)]
+    var allCommands: [(String, String, Int)] { [(L("正文"), "text", 0), (L("标题 1"), "h1 heading", 1), (L("标题 2"), "h2 heading", 2), (L("标题 3"), "h3 heading", 3), (L("标题 4"), "h4 heading", 4), (L("项目列表"), "bullet list", 5), (L("待办事项"), "todo checkbox", 6), (L("编号列表"), "number list", 7), (L("引用"), "quote", 8), (L("表格"), "table", 9), (L("图片"), "image photo", 10), (L("行内公式"), "math-inline", 11), (L("独立公式"), "math-block", 12)] }
 
     // One immediate Backspace can decline a heading shortcut without deleting its text.
     var pendingHeading: (range: NSRange, original: NSAttributedString, caret: Int, convertedCaret: Int, typing: [NSAttributedString.Key: Any])?
@@ -259,6 +304,12 @@ final class EditorController: NSObject, NSTextViewDelegate {
     override init() {
         super.init()
         view.installTimeOverlay()
+        view.onFinishFormula = { [weak self] in MainActor.assumeIsolated { self?.finishFormulaEditing(cancel: false) ?? true } }
+        view.onFormulaLayout = { [weak self] in self?.positionFormulaDraft() }
+        view.onEditFormula = { [weak self] index in
+            guard let self, let attachment = self.view.textStorage?.attribute(.attachment, at: index, effectiveRange: nil) as? NSTextAttachment, let formula = MathFormula.read(attachment) else { return }
+            self.requestFormula?(formula.block, NSRange(location: index, length: 1))
+        }
         view.isRichText = true; view.importsGraphics = true; view.allowsUndo = true
         view.isEditable = true; view.isSelectable = true
         view.isVerticallyResizable = true; view.isHorizontallyResizable = false
@@ -273,7 +324,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
         view.isAutomaticLinkDetectionEnabled = true
         view.usesFindPanel = true; view.isIncrementalSearchingEnabled = true
         view.registerForDraggedTypes([.fileURL, .png, .tiff])
-        view.onImageSelected = { [weak self] image in self?.selectedImage = image; self?.onImageSelected?(image != nil) }
+        view.onImageSelected = { [weak self] image in let picture = image.flatMap { MathFormula.read($0) == nil ? $0 : nil }; self?.selectedImage = picture; self?.onImageSelected?(picture != nil) }
         view.onPasteImage = { [weak self] image in self?.insertImage(image) }
         view.onPastePlainText = { [weak self] text in self?.pasteMarkdown(text) ?? false }
         for surface in [commandPalette, selectionTools] {
@@ -284,7 +335,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
         for (i, symbol) in ["bold", "italic", "underline", "strikethrough"].enumerated() {
             let button = NSButton(image: NSImage(systemSymbolName: symbol, accessibilityDescription: symbol)!, target: self, action: #selector(selectionFormat(_:)))
             button.tag = i; button.isBordered = false; button.contentTintColor = .labelColor
-            button.toolTip = ["粗体 ⌘B", "斜体 ⌘I", "下划线 ⌘U", "删除线"][i]; button.setAccessibilityLabel(button.toolTip)
+            button.toolTip = [L("粗体 ⌘B"), L("斜体 ⌘I"), L("下划线 ⌘U"), L("删除线")][i]; button.setAccessibilityLabel(button.toolTip)
             button.frame = NSRect(x: 5+i*32, y: 3, width: 30, height: 28); selectionTools.addSubview(button)
         }
         view.onChecklist = { [weak self] at in self?.toggleChecklist(at: at) }
@@ -312,7 +363,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
         let position = view.selectedRange().location
         let attrs = position < (view.textStorage?.length ?? 0) ? view.textStorage!.attributes(at: position, effectiveRange: nil) : view.typingAttributes
         onFormatChanged?((attrs[.paragraphStyle] as? NSParagraphStyle)?.headerLevel ?? 0, attrs[.font] as? NSFont ?? NSFont.systemFont(ofSize: defaultSize))
-        if view.selectedRange().length == 1, let attachment = attrs[.attachment] as? NSTextAttachment { selectedImage = attachment; onImageSelected?(true) }
+        if view.selectedRange().length == 1, let attachment = attrs[.attachment] as? NSTextAttachment, MathFormula.read(attachment) == nil { selectedImage = attachment; onImageSelected?(true) }
         else { selectedImage = nil; onImageSelected?(false) }
     }
     func textDidChange(_ notification: Notification) {
@@ -399,29 +450,41 @@ final class EditorController: NSObject, NSTextViewDelegate {
         let string = view.string as NSString; let caret = view.selectedRange().location
         let para = string.paragraphRange(for: NSRange(location: caret, length: 0))
         let prefix = string.substring(with: NSRange(location: para.location, length: caret-para.location))
-        guard prefix.hasPrefix("/"), !prefix.contains(" "), prefix.count < 24 else { commandPalette.isHidden = true; slashRange = nil; return }
-        let query = String(prefix.dropFirst()).lowercased()
-        commandItems = allCommands.filter { query.isEmpty || $0.0.contains(query) || $0.1.contains(query) }
+        let localStart = prefix.hasPrefix("/") ? prefix.startIndex : prefix.range(of: "/math-", options: .backwards)?.lowerBound
+        guard let localStart else { commandPalette.isHidden = true; slashRange = nil; return }
+        let commandText = String(prefix[localStart...])
+        guard !commandText.contains(" "), commandText.count < 24 else { commandPalette.isHidden = true; slashRange = nil; return }
+        let query = String(commandText.dropFirst()).lowercased()
+        commandItems = allCommands.filter { query.isEmpty || $0.0.localizedCaseInsensitiveContains(query) || $0.1.contains(query) }
         guard !commandItems.isEmpty else { commandPalette.isHidden = true; slashRange = nil; return }
-        slashRange = NSRange(location: para.location, length: prefix.utf16.count); commandIndex = 0
+        slashRange = NSRange(location: para.location + String(prefix[..<localStart]).utf16.count, length: commandText.utf16.count); commandIndex = 0
         drawCommands(); commandPalette.isHidden = false; selectionTools.isHidden = true
     }
     func drawCommands() {
         commandPalette.subviews.forEach { $0.removeFromSuperview() }
+        commandList.subviews.forEach { $0.removeFromSuperview() }
+        commandScroll.drawsBackground = false; commandScroll.hasVerticalScroller = true; commandScroll.autohidesScrollers = true
+        commandScroll.documentView = commandList
+        commandPalette.addSubview(commandScroll)
         for (i, item) in commandItems.enumerated() {
             let b = CommandButton(title: "  "+item.0, target: self, action: #selector(pickCommand(_:))); b.tag = i
-            let symbols = ["text.alignleft", "textformat.size", "textformat.size", "textformat.size", "textformat.size", "list.bullet", "checkmark.square", "list.number", "text.quote", "tablecells", "photo"]
+            let symbols = ["text.alignleft", "textformat.size", "textformat.size", "textformat.size", "textformat.size", "list.bullet", "checkmark.square", "list.number", "text.quote", "tablecells", "photo", "function", "sum"]
             b.image = NSImage(systemSymbolName: symbols[item.2], accessibilityDescription: nil); b.imagePosition = .imageLeading
             b.current = i == commandIndex
             b.onHover = { [weak self] in
                 guard let self, self.commandIndex != i else { return }; self.commandIndex = i
-                for case let button as CommandButton in self.commandPalette.subviews { button.current = button.tag == i; button.contentTintColor = button.current ? .controlAccentColor : .labelColor; button.needsDisplay = true }
+                for case let button as CommandButton in self.commandList.subviews { button.current = button.tag == i; button.contentTintColor = button.current ? .controlAccentColor : .labelColor; button.needsDisplay = true }
             }
             b.isBordered = false; b.alignment = .left; b.font = .systemFont(ofSize: 12, weight: i == commandIndex ? .medium : .regular)
             b.contentTintColor = i == commandIndex ? .controlAccentColor : .labelColor
-            b.frame = NSRect(x: 7, y: 6+i*28, width: 200, height: 28); commandPalette.addSubview(b)
+            b.frame = NSRect(x: 7, y: 6+i*28, width: 200, height: 28); commandList.addSubview(b)
         }
-        place(commandPalette, size: NSSize(width: 214, height: 12+commandItems.count*28), above: false)
+        let height = CGFloat(12+commandItems.count*28)
+        let visibleHeight = min(height, max(100, min(300, view.visibleRect.height-16)))
+        commandList.frame = NSRect(x: 0, y: 0, width: 214, height: height)
+        commandScroll.frame = NSRect(x: 1, y: 1, width: 212, height: visibleHeight-2)
+        place(commandPalette, size: NSSize(width: 214, height: visibleHeight), above: false)
+        commandList.scrollToVisible(NSRect(x: 0, y: 6+commandIndex*28, width: 200, height: 28))
     }
     func commandKey(_ key: UInt16) -> Bool {
         guard !commandPalette.isHidden else { return false }
@@ -435,6 +498,10 @@ final class EditorController: NSObject, NSTextViewDelegate {
         guard let range = slashRange, commandItems.indices.contains(commandIndex), NSMaxRange(range) <= (view.string as NSString).length else { return }
         let command = commandItems[commandIndex].2
         commandPalette.isHidden = true; slashRange = nil
+        if command == 11 || command == 12 {
+            requestFormula?(command == 12, range)
+            return
+        }
         replace(range, with: NSAttributedString(string: "", attributes: bodyAttributes(size: defaultSize, family: defaultFamily)))
         switch command {
         case 0...4: applyParagraph(level: command)
@@ -450,6 +517,35 @@ final class EditorController: NSObject, NSTextViewDelegate {
         default: break
         }
         view.window?.makeFirstResponder(view)
+    }
+    @MainActor func insertFormula(_ formula: MathFormula, replacing range: NSRange, rendered: NSTextAttachment? = nil) throws {
+        guard NSMaxRange(range) <= (view.string as NSString).length else { return }
+        let attachment = try rendered ?? formula.attachment(fontSize: defaultSize)
+        let value = NSMutableAttributedString(string: "", attributes: bodyAttributes(size: defaultSize, family: defaultFamily))
+        let text = view.string as NSString
+        if formula.block && range.location > 0 && text.substring(with: NSRange(location: range.location-1, length: 1)) != "\n" {
+            value.append(NSAttributedString(string: "\n", attributes: bodyAttributes()))
+        }
+        let rendered = NSMutableAttributedString(attachment: attachment)
+        let anchor = min(range.location, max(0, text.length-1))
+        let existing = text.length > 0 ? view.textStorage?.attribute(.paragraphStyle, at: anchor, effectiveRange: nil) as? NSParagraphStyle : nil
+        if formula.block, let existing, !existing.textBlocks.isEmpty { throw FormulaError.invalid(L("表格单元格内请使用行内公式。")) }
+        let style = (existing?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+        if formula.block { style.alignment = .center }
+        style.paragraphSpacing = formula.block ? 12 : 7
+        rendered.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: rendered.length))
+        value.append(rendered)
+        if formula.block && (NSMaxRange(range) == text.length || text.substring(with: NSRange(location: NSMaxRange(range), length: 1)) != "\n") {
+            value.append(NSAttributedString(string: "\n", attributes: bodyAttributes()))
+        }
+        replace(range, with: value)
+        if formula.block {
+            let updated = view.string as NSString
+            let caret = view.selectedRange().location
+            if caret < updated.length, updated.substring(with: NSRange(location: caret, length: 1)) == "\n" { view.setSelectedRange(NSRange(location: caret+1, length: 0)) }
+        }
+        view.typingAttributes = bodyAttributes(size: defaultSize, family: defaultFamily)
+        selectedImage = nil; onImageSelected?(false); view.resizeContainer()
     }
     func handleInsertion(_ text: String, at range: NSRange) -> Bool {
         pendingHeading = nil
@@ -487,6 +583,20 @@ final class EditorController: NSObject, NSTextViewDelegate {
             return true
         }
         if text == "\n" {
+            var nearBlockFormula = false
+            let previous = paragraph.location > 0 ? s.paragraphRange(for: NSRange(location: paragraph.location-1, length: 0)) : paragraph
+            let inspect = prefix.isEmpty ? NSUnionRange(previous, paragraph) : paragraph
+            view.textStorage?.enumerateAttribute(.attachment, in: inspect) { value, _, _ in
+                if let attachment = value as? NSTextAttachment, MathFormula.read(attachment)?.block == true { nearBlockFormula = true }
+            }
+            if nearBlockFormula {
+                let body = bodyAttributes(size: defaultSize, family: defaultFamily)
+                replace(range, with: NSAttributedString(string: "\n", attributes: body))
+                let next = (view.string as NSString).paragraphRange(for: view.selectedRange())
+                if next.length > 0 { view.textStorage?.addAttribute(.paragraphStyle, value: body[.paragraphStyle]!, range: next) }
+                view.typingAttributes = body
+                return true
+            }
             let numberPrefix = prefix.range(of: "^[0-9]+\\. ", options: .regularExpression).map { String(prefix[$0]) }
             let marker = ["• ", "☐ ", "☑ "].first(where: { prefix.hasPrefix($0) }) ?? numberPrefix
             if let marker {
@@ -749,7 +859,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
                 let p = NSMutableParagraphStyle(); p.textBlocks = [block]; p.paragraphSpacing = 3
                 var a = bodyAttributes(); a[.paragraphStyle] = p
                 if row == 0 { a[.font] = NSFont.systemFont(ofSize: 15, weight: .semibold) }
-                result.append(NSAttributedString(string: row == 0 ? "列 \(column+1)\n" : "\u{200b}\n", attributes: a))
+                result.append(NSAttributedString(string: row == 0 ? L("表头列") + " \(column+1)\n" : "\u{200b}\n", attributes: a))
             }
         }
         result.append(NSAttributedString(string: "\n", attributes: bodyAttributes()))

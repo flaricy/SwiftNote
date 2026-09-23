@@ -4,7 +4,7 @@
 
 ## Installation
 
-1. Download `SwiftNote-1.0.3-macOS-arm64.zip` from [GitHub Releases](https://github.com/flaricy/SwiftNote/releases/tag/v1.0.3). Requires Apple Silicon and macOS 14 or later.
+1. Download `SwiftNote-1.1.0-macOS-arm64.zip` from [GitHub Releases](https://github.com/flaricy/SwiftNote/releases/tag/v1.1.0). Requires Apple Silicon and macOS 14 or later.
 2. Unzip it and drag **随记.app** into Applications. 随记 is SwiftNote’s name in Finder; the app’s menus are currently in Chinese.
 3. This release is ad-hoc signed and not Apple-notarized. If macOS blocks it, verify that you downloaded it from this repository and follow [Apple’s Open Anyway instructions](https://support.apple.com/102445) in System Settings → Privacy & Security. Do not disable Gatekeeper.
 
@@ -45,3 +45,13 @@ Data is stored in `~/Library/Application Support/LocalNotes/`. Open it with **�
 Documents and the index are written atomically as separate files, not as a single transaction. Save errors preserve unsaved content and display a message. Deleted source documents remain in the `Deleted/` subdirectory; there is no in-app trash view. Files have no additional app-level encryption.
 
 [Back to the English overview](../README.en.md) · [Website](https://flaricy.github.io/SwiftNote/en.html)
+
+## Math formulas
+
+Type `/math-inline` within a line, or `/math-block` for a separate formula, then press Return. Enter LaTeX directly in the document and see the result immediately. Return finishes; Escape restores the original command. Click a formula to edit its source in place. The editor takes real layout space, so surrounding text is never covered.
+
+Rendering works offline; LaTeX source stays embedded in the RTFD attachment. This supports common mathematical LaTeX, not a full TeX document or arbitrary packages. Use inline formulas inside table cells. Long formulas scale to fit the editor; the source remains unchanged.
+
+## Interface language
+
+Choose **SwiftNote → Settings… (⌘,) → Language** to switch between English and 中文. English is the default. The setting applies immediately and is remembered; slash command names follow the interface language, while command aliases and your notes stay unchanged.
