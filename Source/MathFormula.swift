@@ -34,7 +34,7 @@ struct MathFormula: Codable, Equatable {
         return min(1, max(0, ratio))
     }
 
-    @MainActor func attachment(fontSize: CGFloat = 18) throws -> NSTextAttachment {
+    @MainActor func attachment(fontSize: CGFloat = 18, surroundingFont: NSFont? = nil) throws -> NSTextAttachment {
         let latex = self.latex.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !latex.isEmpty, latex.utf8.count <= 8192 else { throw FormulaError.invalid(L("请输入公式，最多 8192 字节。")) }
         let label = MTMathUILabel()
@@ -58,8 +58,8 @@ struct MathFormula: Codable, Equatable {
         let output = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(output, "public.png" as CFString, 1, nil) else { throw FormulaError.invalid(L("无法保存公式。")) }
         let metadata = Self.marker + (try JSONEncoder().encode(self)).base64EncodedString()
-        let bodyFont = NSFont.systemFont(ofSize: fontSize)
-        let baseline = block ? 0 : max(0, (size.height - bodyFont.ascender - bodyFont.descender)/2) / size.height
+        let bodyFont = surroundingFont ?? NSFont.systemFont(ofSize: fontSize)
+        let baseline = block ? 0 : max(0, (size.height - bodyFont.capHeight)/2) / size.height
         CGImageDestinationAddImage(destination, image, [kCGImagePropertyDPIWidth: CGFloat(image.width)/size.width*72, kCGImagePropertyDPIHeight: CGFloat(image.height)/size.height*72, kCGImagePropertyPNGDictionary: [kCGImagePropertyPNGDescription: metadata, kCGImagePropertyPNGComment: "SwiftNoteBaseline:\(baseline)"]] as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { throw FormulaError.invalid(L("无法保存公式。")) }
         let attachment = NSTextAttachment(data: output as Data, ofType: "public.png")

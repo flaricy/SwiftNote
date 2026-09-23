@@ -19,6 +19,7 @@ final class FormulaEditor: NSView, NSTextFieldDelegate {
     var onGeometry: (() -> Void)?
     var valid = false
     var availableWidth: CGFloat = 300
+    var textAttributes: [NSAttributedString.Key: Any] = [:]
     let fontSize: CGFloat
     override var isFlipped: Bool { true }
 
@@ -43,7 +44,7 @@ final class FormulaEditor: NSView, NSTextFieldDelegate {
     required init?(coder: NSCoder) { fatalError("Programmatic editor") }
     @MainActor func refresh() {
         do {
-            rendered = try MathFormula(latex: input.stringValue, block: block).attachment(fontSize: fontSize)
+            rendered = try MathFormula(latex: input.stringValue, block: block).attachment(fontSize: fontSize, surroundingFont: textAttributes[.font] as? NSFont)
             preview.image = (rendered?.attachmentCell as? NSTextAttachmentCell)?.image
             valid = true; message.stringValue = L("↩ 完成   esc 取消"); message.textColor = .secondaryLabelColor
         } catch {
@@ -63,8 +64,8 @@ final class FormulaEditor: NSView, NSTextFieldDelegate {
         let messageWidth = max(1, width-16)
         let messageHeight = max(16, ceil(message.cell!.cellSize(forBounds: NSRect(x: 0, y: 0, width: messageWidth, height: 10000)).height))
         spacer.size = NSSize(width: width, height: height+39+messageHeight+10)
-        let font = NSFont.systemFont(ofSize: fontSize)
-        spacer.baseline = block ? 0 : (font.ascender+font.descender)/2+height/2+5-spacer.size.height
+        let font = textAttributes[.font] as? NSFont ?? NSFont.systemFont(ofSize: fontSize)
+        spacer.baseline = block ? 0 : font.capHeight/2+height/2+5-spacer.size.height
         setFrameSize(spacer.size)
         preview.frame = NSRect(x: 8, y: 5, width: width-16, height: height)
         preview.imageAlignment = block ? .alignCenter : .alignLeft
@@ -104,7 +105,9 @@ extension EditorController {
         var formula = MathFormula(latex: "", block: block)
         if range.length == 1, let attachment = original.attribute(.attachment, at: 0, effectiveRange: nil) as? NSTextAttachment,
            let existing = MathFormula.read(attachment) { formula = existing }
-        let draft = FormulaEditor(formula: formula, range: range, original: original, fontSize: defaultSize)
+        let context = formulaTextAttributes(at: range)
+        let draft = FormulaEditor(formula: formula, range: range, original: original, fontSize: (context[.font] as! NSFont).pointSize)
+        draft.textAttributes = context
         formulaDraft = draft
         let placeholder = NSTextAttachment(); placeholder.attachmentCell = draft.spacer
         let replacement = NSMutableAttributedString(attachment: placeholder)
@@ -180,7 +183,7 @@ extension EditorController {
             } else { replace(draft.originalRange, with: NSAttributedString(string: "", attributes: attributes)) }
             view.typingAttributes = attributes
         } else if !cancel {
-            do { try insertFormula(MathFormula(latex: draft.input.stringValue, block: draft.block), replacing: draft.originalRange, rendered: draft.rendered) }
+            do { try insertFormula(MathFormula(latex: draft.input.stringValue, block: draft.block), replacing: draft.originalRange, rendered: draft.rendered, textAttributes: draft.textAttributes) }
             catch { NSSound.beep(); return false }
         }
         if cancel { didEdit?() }

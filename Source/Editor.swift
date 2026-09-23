@@ -518,9 +518,24 @@ final class EditorController: NSObject, NSTextViewDelegate {
         }
         view.window?.makeFirstResponder(view)
     }
-    @MainActor func insertFormula(_ formula: MathFormula, replacing range: NSRange, rendered: NSTextAttachment? = nil) throws {
+    func formulaTextAttributes(at range: NSRange) -> [NSAttributedString.Key: Any] {
+        let storage = view.textStorage!
+        var attributes = view.typingAttributes
+        if range.length > 0, range.location < storage.length {
+            attributes = storage.attributes(at: range.location, effectiveRange: nil)
+        } else if range.location > 0, range.location <= storage.length {
+            attributes = storage.attributes(at: range.location-1, effectiveRange: nil)
+        }
+        attributes.removeValue(forKey: .attachment)
+        attributes.removeValue(forKey: .baselineOffset)
+        if attributes[.font] == nil { attributes[.font] = bodyAttributes(size: defaultSize, family: defaultFamily)[.font] }
+        return attributes
+    }
+    @MainActor func insertFormula(_ formula: MathFormula, replacing range: NSRange, rendered: NSTextAttachment? = nil, textAttributes: [NSAttributedString.Key: Any]? = nil) throws {
         guard NSMaxRange(range) <= (view.string as NSString).length else { return }
-        let attachment = try rendered ?? formula.attachment(fontSize: defaultSize)
+        let context = textAttributes ?? formulaTextAttributes(at: range)
+        let font = context[.font] as! NSFont
+        let attachment = try rendered ?? formula.attachment(fontSize: font.pointSize, surroundingFont: font)
         let value = NSMutableAttributedString(string: "", attributes: bodyAttributes(size: defaultSize, family: defaultFamily))
         let text = view.string as NSString
         if formula.block && range.location > 0 && text.substring(with: NSRange(location: range.location-1, length: 1)) != "\n" {
@@ -533,6 +548,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
         let style = (existing?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
         if formula.block { style.alignment = .center }
         style.paragraphSpacing = formula.block ? 12 : 7
+        rendered.addAttributes(context, range: NSRange(location: 0, length: rendered.length))
         rendered.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: rendered.length))
         value.append(rendered)
         if formula.block && (NSMaxRange(range) == text.length || text.substring(with: NSRange(location: NSMaxRange(range), length: 1)) != "\n") {
@@ -544,7 +560,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
             let caret = view.selectedRange().location
             if caret < updated.length, updated.substring(with: NSRange(location: caret, length: 1)) == "\n" { view.setSelectedRange(NSRange(location: caret+1, length: 0)) }
         }
-        view.typingAttributes = bodyAttributes(size: defaultSize, family: defaultFamily)
+        view.typingAttributes = formula.block ? bodyAttributes(size: defaultSize, family: defaultFamily) : context
         selectedImage = nil; onImageSelected?(false); view.resizeContainer()
     }
     func handleInsertion(_ text: String, at range: NSRange) -> Bool {

@@ -227,4 +227,25 @@ MainActor.assumeIsolated {
         check(draft.input.placeholderString == "LaTeX", "compact formula placeholder remains readable")
     }
 }
+try MainActor.assumeIsolated {
+    for size in [CGFloat(12), 24] {
+        var attrs = bodyAttributes(size: size)
+        attrs[.font] = NSFont.boldSystemFont(ofSize: size)
+        editor.load(NSAttributedString(string: "你好 /math-inline", attributes: attrs), lines: [])
+        editor.beginFormulaEditing(block: false, range: NSRange(location: 3, length: 12))
+        check(editor.formulaDraft?.fontSize == size, "formula draft inherits surrounding font size")
+        editor.formulaDraft?.input.stringValue = "f(x)+1"
+        check(editor.finishFormulaEditing(cancel: false), "styled inline formula commits")
+        editor.view.insertText(" 今天", replacementRange: editor.view.selectedRange())
+        let storage = editor.view.textStorage!
+        let before = storage.attribute(.font, at: 0, effectiveRange: nil) as! NSFont
+        let after = storage.attribute(.font, at: storage.length-1, effectiveRange: nil) as! NSFont
+        check(before.pointSize == after.pointSize && NSFontManager.shared.traits(of: before).contains(.boldFontMask) == NSFontManager.shared.traits(of: after).contains(.boldFontMask), "formula preserves font size and weight on both sides")
+        let attachment = storage.attribute(.attachment, at: 3, effectiveRange: nil) as! NSTextAttachment
+        let cell = attachment.attachmentCell!
+        let center = cell.cellSize().height/2 + cell.cellBaselineOffset().y
+        let formulaFont = storage.attribute(.font, at: 3, effectiveRange: nil) as! NSFont
+        check(abs(center-formulaFont.capHeight/2) < 0.5, "formula visual center matches its inherited text font")
+    }
+}
 print("ALL TESTS PASSED")

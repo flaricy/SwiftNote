@@ -30,6 +30,13 @@ extension AppController {
                 }
                 if let first { editFormula(block: false, range: first) }
             }
+            if mode == "alignment" {
+                editor.load(NSAttributedString(string: "你好 /math-inline", attributes: bodyAttributes(size: 12)), lines: [])
+                editFormula(block: false, range: NSRange(location: 3, length: 12))
+                editor.formulaDraft?.input.stringValue = "f(x)+1"
+                _ = editor.finishFormulaEditing(cancel: false)
+                editor.view.insertText(" 今天", replacementRange: editor.view.selectedRange())
+            }
             if mode.hasPrefix("empty") {
                 if mode.contains("dark") { NSApp.appearance = NSAppearance(named: .darkAqua) }
                 editor.load(NSAttributedString(string: "/math-inline", attributes: bodyAttributes()), lines: [])
