@@ -348,8 +348,12 @@ final class EditorController: NSObject, NSTextViewDelegate {
     func load(_ text: NSAttributedString, lines: [LineRecord]) {
         pendingHeading = nil
         view.hasClickedLine = false; commandPalette.isHidden = true; selectionTools.isHidden = true; slashRange = nil
-        updating = true; view.textStorage?.setAttributedString(text)
-        view.records = lines; view.recordRanges = paragraphRanges(text.string)
+        updating = true
+        let displayed = MainActor.assumeIsolated { MathFormula.refreshSavedFormulas(in: text) }
+        view.textStorage?.setAttributedString(displayed)
+        let loadedHashes = fingerprints(view.attributedString())
+        view.records = lines.count == loadedHashes.count ? zip(lines, loadedHashes).map { LineRecord(fingerprint: $0.1, modified: $0.0.modified) } : lines
+        view.recordRanges = paragraphRanges(text.string)
         view.typingAttributes = bodyAttributes(size: defaultSize, family: defaultFamily)
         view.undoManager?.removeAllActions(); view.setSelectedRange(NSRange(location: 0, length: 0)); view.scrollRangeToVisible(NSRange(location: 0, length: 0))
         if text.length == 0 { view.typingAttributes = bodyAttributes(size: defaultSize, family: defaultFamily) }

@@ -47,6 +47,19 @@ extension AppController {
                 window.setContentSize(NSSize(width: narrow ? 740 : 1060, height: 740))
                 editor.view.scrollRangeToVisible(NSRange(location: 0, length: 0))
             }
+            if mode == "saved-formula" {
+                let old = try! MathFormula(latex: "f(x)+1", block: false).attachment(fontSize: 12)
+                let image = (old.attachmentCell as! NSTextAttachmentCell).image!
+                old.attachmentCell = FormulaAttachmentCell(image: image, baselineRatio: 0)
+                let note = NSMutableAttributedString(string: "是的\n\n", attributes: bodyAttributes(size: 18))
+                let index = note.length
+                note.append(NSAttributedString(attachment: old))
+                note.addAttribute(.baselineOffset, value: 5, range: NSRange(location: index, length: 1))
+                note.append(NSAttributedString(string: " = 2 什么？\n\n今天真是个好日子\n", attributes: bodyAttributes(size: 18)))
+                let data = try! note.data(from: NSRange(location: 0, length: note.length), documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd])
+                let reopened = try! NSAttributedString(data: data, options: [.documentType: NSAttributedString.DocumentType.rtfd], documentAttributes: nil)
+                editor.load(reopened, lines: [])
+            }
             if mode == "alignment" {
                 editor.load(NSAttributedString(string: "你好 /math-inline", attributes: bodyAttributes(size: 12)), lines: [])
                 editFormula(block: false, range: NSRange(location: 3, length: 12))

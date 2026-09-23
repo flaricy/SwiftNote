@@ -294,4 +294,34 @@ try MainActor.assumeIsolated {
     check(editor.finishFormulaEditing(cancel: false) && editor.view.string.hasPrefix("prefix "), "mid-line command preserves preceding text")
     editor.requestFormula = nil
 }
+try MainActor.assumeIsolated {
+    let legacy = try MathFormula(latex: "f(x)+1", block: false).attachment(fontSize: 12)
+    let oldImage = (legacy.attachmentCell as! NSTextAttachmentCell).image!
+    legacy.attachmentCell = FormulaAttachmentCell(image: oldImage, baselineRatio: 0)
+    let saved = NSMutableAttributedString(attachment: legacy)
+    saved.append(NSAttributedString(string: " = 2 什么？\n今天是个好日子", attributes: bodyAttributes(size: 18)))
+    saved.addAttribute(.baselineOffset, value: 5, range: NSRange(location: 0, length: 1))
+    let rtf = try saved.data(from: NSRange(location: 0, length: saved.length), documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd])
+    let reopened = try NSAttributedString(data: rtf, options: [.documentType: NSAttributedString.DocumentType.rtfd], documentAttributes: nil)
+    let identity = fingerprints(reopened)
+    let oldDate = Date(timeIntervalSince1970: 123)
+    editor.load(reopened, lines: identity.map { LineRecord(fingerprint: $0, modified: oldDate) })
+    let repaired = editor.view.attributedString()
+    let attachment = repaired.attribute(.attachment, at: 0, effectiveRange: nil) as! NSTextAttachment
+    check(attachment.attachmentCell!.cellBaselineOffset().y < 0, "reopened old formula gains the correct baseline")
+    check(repaired.attribute(.baselineOffset, at: 0, effectiveRange: nil) == nil, "old text-level formula offset is removed")
+    let expected = try MathFormula(latex: "f(x)+1", block: false).attachment(fontSize: 18)
+    check(attachment.attachmentCell!.cellSize() == expected.attachmentCell!.cellSize(), "saved formula adopts adjacent body size")
+    check(repaired.string == reopened.string && editor.view.records.allSatisfy { $0.modified == oldDate } && editor.view.records.map { $0.fingerprint } == fingerprints(repaired), "saved formula repair preserves content and modification times")
+    editor.beginFormulaEditing(block: false, range: NSRange(location: 0, length: 1))
+    check(editor.formulaDraft?.fontSize == 18, "editing a repaired saved formula keeps repaired size")
+    _ = editor.finishFormulaEditing(cancel: true)
+    let mixed = NSMutableAttributedString(string: "Large ", attributes: bodyAttributes(size: 30))
+    mixed.append(NSAttributedString(string: "body ", attributes: bodyAttributes(size: 18)))
+    let mixedIndex = mixed.length
+    mixed.append(NSAttributedString(attachment: legacy))
+    let displayed = MathFormula.refreshSavedFormulas(in: mixed)
+    check((displayed.attribute(.font, at: mixedIndex, effectiveRange: nil) as! NSFont).pointSize == 18, "saved formula inherits nearest neighbor rather than paragraph heading size")
+    check(reopened.attribute(.baselineOffset, at: 0, effectiveRange: nil) != nil, "display repair does not mutate source document")
+}
 print("ALL TESTS PASSED")

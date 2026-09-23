@@ -18,6 +18,31 @@ struct MathFormula: Codable, Equatable {
         return try? JSONDecoder().decode(MathFormula.self, from: json)
     }
 
+    // Old RTFD attachments contain baked pixels and offsets; a binary update cannot fix them.
+    @MainActor static func refreshSavedFormulas(in text: NSAttributedString) -> NSAttributedString {
+        let result = NSMutableAttributedString(attributedString: text)
+        let string = text.string as NSString
+        text.enumerateAttribute(.attachment, in: NSRange(location: 0, length: text.length)) { value, range, _ in
+            guard let old = value as? NSTextAttachment, let formula = read(old) else { return }
+            let paragraph = string.paragraphRange(for: range)
+            var font: NSFont?
+            if !formula.block {
+                let neighbors = [range.location-1, NSMaxRange(range)]
+                for index in neighbors where index >= paragraph.location && index < NSMaxRange(paragraph) {
+                    if text.attribute(.attachment, at: index, effectiveRange: nil) == nil,
+                       string.substring(with: NSRange(location: index, length: 1)) != "\n",
+                       let candidate = text.attribute(.font, at: index, effectiveRange: nil) as? NSFont { font = candidate; break }
+                }
+            }
+            font = font ?? (text.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont) ?? NSFont.systemFont(ofSize: 18)
+            guard let fresh = try? formula.attachment(fontSize: font!.pointSize, surroundingFont: font) else { return }
+            result.addAttribute(.attachment, value: fresh, range: range)
+            result.addAttribute(.font, value: font!, range: range)
+            result.removeAttribute(.baselineOffset, range: range)
+        }
+        return result
+    }
+
     static func restoreCell(_ attachment: NSTextAttachment) {
         guard !(attachment.attachmentCell is FormulaAttachmentCell), read(attachment) != nil,
               let data = attachment.fileWrapper?.regularFileContents, let image = NSImage(data: data) else { return }
