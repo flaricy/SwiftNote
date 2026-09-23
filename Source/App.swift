@@ -140,7 +140,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
         blockPopup.bezelStyle = .texturedRounded; blockPopup.isBordered = false; blockPopup.font = .systemFont(ofSize: 12); blockPopup.widthAnchor.constraint(equalToConstant: 88).isActive = true
         fontPopup.addItems(withTitles: [L("系统字体"), L("苹方"), L("宋体"), "Helvetica", "Georgia", "Menlo"]); fontPopup.target = self; fontPopup.action = #selector(fontChanged)
         fontPopup.bezelStyle = .texturedRounded; fontPopup.isBordered = false; fontPopup.font = .systemFont(ofSize: 12); fontPopup.widthAnchor.constraint(equalToConstant: 96).isActive = true
-        sizePopup.addItems(withObjectValues: [12,14,16,18,20,24,28,32,40,48]); sizePopup.stringValue = "16"; sizePopup.target = self; sizePopup.action = #selector(sizeChanged)
+        sizePopup.addItems(withObjectValues: [12,14,16,18,20,24,28,32,40,48]); sizePopup.stringValue = "18"; sizePopup.target = self; sizePopup.action = #selector(sizeChanged)
         sizePopup.isBordered = false; sizePopup.drawsBackground = false; sizePopup.font = .systemFont(ofSize: 12)
         sizePopup.widthAnchor.constraint(equalToConstant: 52).isActive = true; sizePopup.toolTip = L("字号（8–96）")
         let formatController = NSViewController()
@@ -284,7 +284,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
     @objc func blockChanged() { guard flush() else { return }; editor.applyParagraph(level: blockPopup.indexOfSelectedItem) }
     @objc func headingMenu(_ item: NSMenuItem) { guard flush() else { return }; editor.applyParagraph(level: item.tag); blockPopup.selectItem(at: item.tag) }
     @objc func fontChanged() { guard flush() else { return }; let fonts = [".AppleSystemUIFont", "PingFangSC-Regular", "SongtiSC-Regular", "Helvetica", "Georgia", "Menlo-Regular"]; editor.formatFont(family: fonts[fontPopup.indexOfSelectedItem]) }
-    @objc func sizeChanged() { guard flush() else { return }; guard let value = Double(sizePopup.stringValue), (8...96).contains(value) else { sizePopup.stringValue = "16"; return }; editor.formatFont(size: value) }
+    @objc func sizeChanged() { guard flush() else { return }; guard let value = Double(sizePopup.stringValue), (8...96).contains(value) else { sizePopup.stringValue = "18"; return }; editor.formatFont(size: value) }
     @objc func bold() { guard flush() else { return }; editor.formatFont(trait: .boldFontMask) }
     @objc func underline() { guard flush() else { return }; editor.toggleAttribute(.underlineStyle) }
     @objc func toggleChecklist() { guard flush() else { return }; editor.toggleChecklist() }

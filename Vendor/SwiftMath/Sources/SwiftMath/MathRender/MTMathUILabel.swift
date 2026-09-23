@@ -182,6 +182,9 @@ public class MTMathUILabel : MTView {
     private var _textAlignment = MTTextAlignment.left
     
     /** The internal display of the MTMathUILabel. This is for advanced use only. */
+    /// Baseline measured from the bottom of the laid-out label (for native text attachments).
+    public var renderedBaseline: CGFloat { _displayList?.position.y ?? 0 }
+
     public var displayList: MTMathListDisplay? { _displayList }
     private var _displayList:MTMathListDisplay?
 

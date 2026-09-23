@@ -167,7 +167,7 @@ final class NoteStore {
         notes.removeAll { $0.id == id }; try persistIndex()
     }
 }
-func bodyAttributes(size: CGFloat = 16, family: String? = nil) -> [NSAttributedString.Key: Any] {
+func bodyAttributes(size: CGFloat = 18, family: String? = nil) -> [NSAttributedString.Key: Any] {
     let p = NSMutableParagraphStyle(); p.paragraphSpacing = 7; p.lineSpacing = 4
     let f = family.flatMap { NSFont(name: $0, size: size) } ?? NSFont.systemFont(ofSize: size)
     return [.font: f, .foregroundColor: NSColor.textColor, .paragraphStyle: p]

@@ -39,7 +39,7 @@ struct MathFormula: Codable, Equatable {
         guard !latex.isEmpty, latex.utf8.count <= 8192 else { throw FormulaError.invalid(L("请输入公式，最多 8192 字节。")) }
         let label = MTMathUILabel()
         label.latex = latex
-        label.fontSize = block ? max(22, fontSize) : fontSize
+        label.fontSize = fontSize * 1.1
         label.labelMode = block ? .display : .text
         label.textColor = .black
         label.preferredMaxLayoutWidth = 1200
@@ -58,8 +58,9 @@ struct MathFormula: Codable, Equatable {
         let output = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(output, "public.png" as CFString, 1, nil) else { throw FormulaError.invalid(L("无法保存公式。")) }
         let metadata = Self.marker + (try JSONEncoder().encode(self)).base64EncodedString()
-        let bodyFont = surroundingFont ?? NSFont.systemFont(ofSize: fontSize)
-        let baseline = block ? 0 : max(0, (size.height - bodyFont.capHeight)/2) / size.height
+        // The renderer exposes the real math baseline, including bitmap padding.
+        // Align this with the text baseline; the bounding box center shifts with descenders/fractions.
+        let baseline = block ? 0 : label.renderedBaseline / size.height
         CGImageDestinationAddImage(destination, image, [kCGImagePropertyDPIWidth: CGFloat(image.width)/size.width*72, kCGImagePropertyDPIHeight: CGFloat(image.height)/size.height*72, kCGImagePropertyPNGDictionary: [kCGImagePropertyPNGDescription: metadata, kCGImagePropertyPNGComment: "SwiftNoteBaseline:\(baseline)"]] as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { throw FormulaError.invalid(L("无法保存公式。")) }
         let attachment = NSTextAttachment(data: output as Data, ofType: "public.png")

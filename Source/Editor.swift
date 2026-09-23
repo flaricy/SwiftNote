@@ -296,7 +296,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
     // One immediate Backspace can decline a heading shortcut without deleting its text.
     var pendingHeading: (range: NSRange, original: NSAttributedString, caret: Int, convertedCaret: Int, typing: [NSAttributedString.Key: Any])?
     var updating = false
-    var defaultSize: CGFloat = 16
+    var defaultSize: CGFloat = 18
     var defaultFamily: String?
     var selectedImage: NSTextAttachment?
     var onImageSelected: ((Bool) -> Void)?
@@ -352,6 +352,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
         view.records = lines; view.recordRanges = paragraphRanges(text.string)
         view.typingAttributes = bodyAttributes(size: defaultSize, family: defaultFamily)
         view.undoManager?.removeAllActions(); view.setSelectedRange(NSRange(location: 0, length: 0)); view.scrollRangeToVisible(NSRange(location: 0, length: 0))
+        if text.length == 0 { view.typingAttributes = bodyAttributes(size: defaultSize, family: defaultFamily) }
         selectedImage = nil; onImageSelected?(false); view.resizeContainer(); updating = false; view.needsDisplay = true
     }
     func textViewDidChangeSelection(_ notification: Notification) {
@@ -450,7 +451,9 @@ final class EditorController: NSObject, NSTextViewDelegate {
         let string = view.string as NSString; let caret = view.selectedRange().location
         let para = string.paragraphRange(for: NSRange(location: caret, length: 0))
         let prefix = string.substring(with: NSRange(location: para.location, length: caret-para.location))
-        let localStart = prefix.hasPrefix("/") ? prefix.startIndex : prefix.range(of: "/math-", options: .backwards)?.lowerBound
+        let token = prefix.split(whereSeparator: { $0.isWhitespace }).last.map(String.init) ?? ""
+        guard !token.contains("://") else { commandPalette.isHidden = true; slashRange = nil; return }
+        let localStart = prefix.lastIndex(of: "/")
         guard let localStart else { commandPalette.isHidden = true; slashRange = nil; return }
         let commandText = String(prefix[localStart...])
         guard !commandText.contains(" "), commandText.count < 24 else { commandPalette.isHidden = true; slashRange = nil; return }
@@ -480,7 +483,8 @@ final class EditorController: NSObject, NSTextViewDelegate {
             b.frame = NSRect(x: 7, y: 6+i*28, width: 200, height: 28); commandList.addSubview(b)
         }
         let height = CGFloat(12+commandItems.count*28)
-        let visibleHeight = min(height, max(100, min(300, view.visibleRect.height-16)))
+        let availableHeight = max(100, min(300, view.visibleRect.height-16))
+        let visibleHeight = min(height, 12 + floor((availableHeight-12)/28)*28)
         commandList.frame = NSRect(x: 0, y: 0, width: 214, height: height)
         commandScroll.frame = NSRect(x: 1, y: 1, width: 212, height: visibleHeight-2)
         place(commandPalette, size: NSSize(width: 214, height: visibleHeight), above: false)

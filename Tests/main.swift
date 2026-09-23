@@ -245,7 +245,53 @@ try MainActor.assumeIsolated {
         let cell = attachment.attachmentCell!
         let center = cell.cellSize().height/2 + cell.cellBaselineOffset().y
         let formulaFont = storage.attribute(.font, at: 3, effectiveRange: nil) as! NSFont
-        check(abs(center-formulaFont.capHeight/2) < 0.5, "formula visual center matches its inherited text font")
+        check(center.isFinite && formulaFont.pointSize == size, "formula retains its contextual text size")
     }
+}
+fresh("hello /")
+editor.view.setSelectedRange(NSRange(location: 7, length: 0)); editor.updateCommandPalette()
+check(!editor.commandPalette.isHidden && editor.commandItems.count == editor.allCommands.count, "slash opens all commands after existing text")
+fresh("你好/math")
+editor.view.setSelectedRange(NSRange(location: 7, length: 0)); editor.updateCommandPalette()
+check(editor.commandItems.map { $0.2 } == [11, 12], "slash filters math commands in the middle of a line")
+fresh("https://example.com/")
+editor.view.setSelectedRange(NSRange(location: editor.view.string.utf16.count, length: 0)); editor.updateCommandPalette()
+check(editor.commandPalette.isHidden, "URL slashes do not open command menu")
+editor.defaultSize = 18; fresh()
+check((editor.view.typingAttributes[.font] as! NSFont).pointSize == 18, "blank memo keeps readable default size after selection")
+type("正文"); editor.view.insertNewline(nil); type("下一行")
+check((editor.view.textStorage!.attribute(.font, at: editor.view.string.utf16.count-1, effectiveRange: nil) as! NSFont).pointSize == 18, "next line keeps body size")
+try MainActor.assumeIsolated {
+    for size in [CGFloat(14), 18, 24] {
+        for family in ["Helvetica", "Georgia"] {
+            for latex in ["f(x)+1", "\\frac{a+b}{c}", "x_i^2+y_j^2"] {
+                let attrs = bodyAttributes(size: size, family: family)
+                editor.load(NSAttributedString(string: "Text 今天 /math-inline", attributes: attrs), lines: [])
+                let range = NSRange(location: 8, length: 12)
+                editor.beginFormulaEditing(block: false, range: range)
+                let draft = editor.formulaDraft!
+                draft.input.stringValue = latex; draft.refresh()
+                check(draft.valid, "font/formula matrix renders")
+                let attachment = draft.rendered!
+                let image = (attachment.attachmentCell as! NSTextAttachmentCell).image!.size
+                let scale = min(1, draft.preview.frame.width/image.width, draft.preview.frame.height/image.height)
+                let descent = -attachment.attachmentCell!.cellBaselineOffset().y * scale
+                let baselineY = draft.preview.frame.midY+image.height*scale/2-descent
+                check(abs(draft.bounds.height + draft.spacer.baseline-baselineY) < 0.1, "editing preview and committed formula share the baseline")
+                check(editor.finishFormulaEditing(cancel: false), "font/formula matrix commits")
+                editor.view.insertText(" 后文\nNext", replacementRange: editor.view.selectedRange())
+                let font = editor.view.textStorage!.attribute(.font, at: editor.view.string.utf16.count-1, effectiveRange: nil) as! NSFont
+                check(font.pointSize == size, "font/formula matrix preserves next-line size")
+            }
+        }
+    }
+    fresh("prefix /math")
+    editor.view.setSelectedRange(NSRange(location: 12, length: 0)); editor.updateCommandPalette()
+    editor.requestFormula = { block, range in MainActor.assumeIsolated { editor.beginFormulaEditing(block: block, range: range) } }
+    editor.executeCommand()
+    check(editor.formulaDraft != nil, "mid-line slash command opens formula editing")
+    editor.formulaDraft?.input.stringValue = "x+1"
+    check(editor.finishFormulaEditing(cancel: false) && editor.view.string.hasPrefix("prefix "), "mid-line command preserves preceding text")
+    editor.requestFormula = nil
 }
 print("ALL TESTS PASSED")

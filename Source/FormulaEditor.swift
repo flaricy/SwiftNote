@@ -65,7 +65,10 @@ final class FormulaEditor: NSView, NSTextFieldDelegate {
         let messageHeight = max(16, ceil(message.cell!.cellSize(forBounds: NSRect(x: 0, y: 0, width: messageWidth, height: 10000)).height))
         spacer.size = NSSize(width: width, height: height+39+messageHeight+10)
         let font = textAttributes[.font] as? NSFont ?? NSFont.systemFont(ofSize: fontSize)
-        spacer.baseline = block ? 0 : font.capHeight/2+height/2+5-spacer.size.height
+        let previewScale = min(scale, height/max(1, image.height))
+        let descent = -(rendered?.attachmentCell?.cellBaselineOffset().y ?? 0) * previewScale
+        let previewBaseline = preview.image == nil ? font.capHeight/2 : image.height*previewScale/2-descent
+        spacer.baseline = block ? 0 : previewBaseline+height/2+5-spacer.size.height
         setFrameSize(spacer.size)
         preview.frame = NSRect(x: 8, y: 5, width: width-16, height: height)
         preview.imageAlignment = block ? .alignCenter : .alignLeft
