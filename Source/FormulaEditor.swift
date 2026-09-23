@@ -20,6 +20,7 @@ final class FormulaEditor: NSView, NSTextFieldDelegate {
     var valid = false
     var availableWidth: CGFloat = 300
     var textAttributes: [NSAttributedString.Key: Any] = [:]
+    var surroundingText = "H"
     let fontSize: CGFloat
     override var isFlipped: Bool { true }
 
@@ -44,7 +45,7 @@ final class FormulaEditor: NSView, NSTextFieldDelegate {
     required init?(coder: NSCoder) { fatalError("Programmatic editor") }
     @MainActor func refresh() {
         do {
-            rendered = try MathFormula(latex: input.stringValue, block: block).attachment(fontSize: fontSize, surroundingFont: textAttributes[.font] as? NSFont)
+            rendered = try MathFormula(latex: input.stringValue, block: block).attachment(fontSize: fontSize, surroundingFont: textAttributes[.font] as? NSFont, surroundingText: surroundingText)
             preview.image = (rendered?.attachmentCell as? NSTextAttachmentCell)?.image
             valid = true; message.stringValue = L("↩ 完成   esc 取消"); message.textColor = .secondaryLabelColor
         } catch {
@@ -111,6 +112,7 @@ extension EditorController {
         let context = formulaTextAttributes(at: range)
         let draft = FormulaEditor(formula: formula, range: range, original: original, fontSize: (context[.font] as! NSFont).pointSize)
         draft.textAttributes = context
+        draft.surroundingText = MathFormula.adjacentText(in: storage, range: range)
         formulaDraft = draft
         let placeholder = NSTextAttachment(); placeholder.attachmentCell = draft.spacer
         let replacement = NSMutableAttributedString(attachment: placeholder)

@@ -6,4 +6,5 @@ case "$BUILD_ARCH" in arm64|x86_64) ;; *) echo "Unsupported architecture: $BUILD
 xcodebuild -quiet -project SwiftNote.xcodeproj -scheme SwiftNoteMac -configuration Release -derivedDataPath build/Derived ARCHS="$BUILD_ARCH" CODE_SIGNING_ALLOWED=NO build
 rm -rf 'build/随记.app'
 ditto 'build/Derived/Build/Products/Release/随记.app' 'build/随记.app'
+test -s 'build/随记.app/Contents/Resources/AppIcon.icns'
 codesign --force --deep --sign - 'build/随记.app'

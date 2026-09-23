@@ -16,8 +16,10 @@ targets:
   SwiftNoteMac:
     type: application
     platform: macOS
-    sources: [Source]
-    resources: [Assets/AppIcon.icns]
+    sources:
+      - Source
+      - path: Assets/AppIcon.icns
+        buildPhase: resources
     dependencies:
       - package: SwiftMath
     settings:

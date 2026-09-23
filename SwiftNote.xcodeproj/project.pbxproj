@@ -19,6 +19,7 @@
 		848E7E1EC88215F2BCB49082 /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF00DBEF90F6E0A6E4927D0C /* Model.swift */; };
 		85D1662882FCEA5DB37F1DBD /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = 9E372C12ECAA702169692433 /* SwiftMath */; };
 		8FA68AF08038F526F85F112D /* MathFormula.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010D0AE64C61EC73E6EDD472 /* MathFormula.swift */; };
+		9599C6F1ACEC5ED2485AEB81 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 0E5E94EB26371C8EBA6C766A /* AppIcon.icns */; };
 		BAF3A49FF3895B1FA2379FFE /* FormulaEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD21EEA7A8C9068E8EFA9F26 /* FormulaEditor.swift */; };
 		C84CC2A26AD28608B6BAFDDF /* Editor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013A34908406812382B32A6F /* Editor.swift */; };
 		D03BAE953968F4B0EC429DF3 /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = 72B3354D7EB309AFB0809B33 /* SwiftMath */; };
@@ -29,6 +30,7 @@
 /* Begin PBXFileReference section */
 		010D0AE64C61EC73E6EDD472 /* MathFormula.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathFormula.swift; sourceTree = "<group>"; };
 		013A34908406812382B32A6F /* Editor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Editor.swift; sourceTree = "<group>"; };
+		0E5E94EB26371C8EBA6C766A /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		32CFBE7974A63C04ED4A21F6 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		44E1FCC602C853B3CF57577C /* SwiftNoteMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftNoteMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5D03A714D93ED047BD52FEC6 /* Regression */ = {isa = PBXFileReference; includeInIndex = 0; path = Regression; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -62,6 +64,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0879E67405F7D6BC612B26A8 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				0E5E94EB26371C8EBA6C766A /* AppIcon.icns */,
+			);
+			path = Assets;
+			sourceTree = "<group>";
+		};
 		1F0DC2FA12A6E3419987431A /* Tests */ = {
 			isa = PBXGroup;
 			children = (
@@ -97,6 +107,7 @@
 		68E45EF570DA2CB60B947AE2 = {
 			isa = PBXGroup;
 			children = (
+				0879E67405F7D6BC612B26A8 /* Assets */,
 				56628FB56674099150C2DAE5 /* Packages */,
 				682F973A9FEE6F519F85C4AD /* Source */,
 				1F0DC2FA12A6E3419987431A /* Tests */,
@@ -140,6 +151,7 @@
 			buildConfigurationList = 1E943A3DAE3E34B769317B18 /* Build configuration list for PBXNativeTarget "SwiftNoteMac" */;
 			buildPhases = (
 				9A626389A1388E9D1DE18FC5 /* Sources */,
+				F5AF1D487D34DE5FE582BFBA /* Resources */,
 				DEDD77EFAE233E182A5FAD2D /* Frameworks */,
 			);
 			buildRules = (
@@ -193,6 +205,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F5AF1D487D34DE5FE582BFBA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9599C6F1ACEC5ED2485AEB81 /* AppIcon.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		1827F8404DBB79182528D436 /* Sources */ = {

@@ -60,6 +60,17 @@ extension AppController {
                 let reopened = try! NSAttributedString(data: data, options: [.documentType: NSAttributedString.DocumentType.rtfd], documentAttributes: nil)
                 editor.load(reopened, lines: [])
             }
+            if mode == "optical" {
+                editor.load(NSAttributedString(string: "", attributes: bodyAttributes(size: 18)), lines: [])
+                for size in [CGFloat(18), 24] {
+                    for latex in ["f(x)+1", "\\frac{a+b}{c}", "x_i^2+y_j^2"] {
+                        editor.view.typingAttributes = bodyAttributes(size: size)
+                        editor.view.insertText("这是 ", replacementRange: editor.view.selectedRange())
+                        try? editor.insertFormula(MathFormula(latex: latex, block: false), replacing: editor.view.selectedRange())
+                        editor.view.insertText(" 是一个函数\n", replacementRange: editor.view.selectedRange())
+                    }
+                }
+            }
             if mode == "alignment" {
                 editor.load(NSAttributedString(string: "你好 /math-inline", attributes: bodyAttributes(size: 12)), lines: [])
                 editFormula(block: false, range: NSRange(location: 3, length: 12))

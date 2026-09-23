@@ -2,6 +2,7 @@ import Foundation
 import SwiftMath
 import ImageIO
 import AppKit
+import CoreText
 
 struct MathFormula: Codable, Equatable {
     var latex: String
@@ -16,6 +17,51 @@ struct MathFormula: Codable, Equatable {
               let description = png[kCGImagePropertyPNGDescription as String] as? String,
               description.hasPrefix(marker), let json = Data(base64Encoded: String(description.dropFirst(marker.count))) else { return nil }
         return try? JSONDecoder().decode(MathFormula.self, from: json)
+    }
+
+    static func adjacentText(in text: NSAttributedString, range: NSRange) -> String {
+        let value = text.string as NSString
+        let paragraph = value.paragraphRange(for: range)
+        func representative(at index: Int) -> String? {
+            let character = value.substring(with: value.rangeOfComposedCharacterSequence(at: index))
+            guard character.unicodeScalars.contains(where: { CharacterSet.letters.contains($0) || CharacterSet.decimalDigits.contains($0) }) else { return nil }
+            return character.unicodeScalars.contains(where: { (0x3400...0x9fff).contains(Int($0.value)) }) ? character : "H"
+        }
+        for index in stride(from: range.location-1, through: paragraph.location, by: -1) where index >= 0 {
+            if let text = representative(at: index) { return text }
+        }
+        for index in NSMaxRange(range)..<NSMaxRange(paragraph) {
+            if let text = representative(at: index) { return text }
+        }
+        return "H"
+    }
+
+    static func textInkCenter(font: NSFont, text: String) -> CGFloat {
+        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: font]))
+        let bounds = CTLineGetBoundsWithOptions(line, [.useGlyphPathBounds])
+        return bounds.isEmpty ? font.capHeight/2 : bounds.midY
+    }
+
+    static func imageInkCenter(_ image: CGImage, logicalHeight: CGFloat) -> CGFloat {
+        let width = image.width, height = image.height
+        var pixels = [UInt8](repeating: 0, count: width*height*4)
+        var first = height, last = -1
+        pixels.withUnsafeMutableBytes { bytes in
+            guard let context = CGContext(data: bytes.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width*4, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
+            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+            let data = bytes.bindMemory(to: UInt8.self)
+            for y in 0..<height {
+                for x in 0..<width {
+                    let i = (y*width+x)*4
+                    if data[i+3] > 64 && Int(data[i])+Int(data[i+1])+Int(data[i+2]) < 384 {
+                        first = min(first,y); last = max(last,y); break
+                    }
+                }
+            }
+        }
+        guard last >= first else { return logicalHeight/2 }
+        // CGImage scanlines run from the image's top edge.
+        return logicalHeight * (1 - CGFloat(first+last+1)/CGFloat(2*height))
     }
 
     // Old RTFD attachments contain baked pixels and offsets; a binary update cannot fix them.
@@ -35,7 +81,7 @@ struct MathFormula: Codable, Equatable {
                 }
             }
             font = font ?? (text.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont) ?? NSFont.systemFont(ofSize: 18)
-            guard let fresh = try? formula.attachment(fontSize: font!.pointSize, surroundingFont: font) else { return }
+            guard let fresh = try? formula.attachment(fontSize: font!.pointSize, surroundingFont: font, surroundingText: adjacentText(in: text, range: range)) else { return }
             result.addAttribute(.attachment, value: fresh, range: range)
             result.addAttribute(.font, value: font!, range: range)
             result.removeAttribute(.baselineOffset, range: range)
@@ -56,10 +102,10 @@ struct MathFormula: Codable, Equatable {
               let png = props[kCGImagePropertyPNGDictionary as String] as? [String: Any],
               let comment = png[kCGImagePropertyPNGComment as String] as? String,
               comment.hasPrefix("SwiftNoteBaseline:"), let ratio = Double(comment.dropFirst("SwiftNoteBaseline:".count)), ratio.isFinite else { return 0.18 }
-        return min(1, max(0, ratio))
+        return min(1, max(-1, ratio))
     }
 
-    @MainActor func attachment(fontSize: CGFloat = 18, surroundingFont: NSFont? = nil) throws -> NSTextAttachment {
+    @MainActor func attachment(fontSize: CGFloat = 18, surroundingFont: NSFont? = nil, surroundingText: String = "H") throws -> NSTextAttachment {
         let latex = self.latex.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !latex.isEmpty, latex.utf8.count <= 8192 else { throw FormulaError.invalid(L("请输入公式，最多 8192 字节。")) }
         let label = MTMathUILabel()
@@ -83,9 +129,8 @@ struct MathFormula: Codable, Equatable {
         let output = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(output, "public.png" as CFString, 1, nil) else { throw FormulaError.invalid(L("无法保存公式。")) }
         let metadata = Self.marker + (try JSONEncoder().encode(self)).base64EncodedString()
-        // The renderer exposes the real math baseline, including bitmap padding.
-        // Align this with the text baseline; the bounding box center shifts with descenders/fractions.
-        let baseline = block ? 0 : label.renderedBaseline / size.height
+        let font = surroundingFont ?? NSFont.systemFont(ofSize: fontSize)
+        let baseline = block ? 0 : (Self.imageInkCenter(image, logicalHeight: size.height) - Self.textInkCenter(font: font, text: surroundingText)) / size.height
         CGImageDestinationAddImage(destination, image, [kCGImagePropertyDPIWidth: CGFloat(image.width)/size.width*72, kCGImagePropertyDPIHeight: CGFloat(image.height)/size.height*72, kCGImagePropertyPNGDictionary: [kCGImagePropertyPNGDescription: metadata, kCGImagePropertyPNGComment: "SwiftNoteBaseline:\(baseline)"]] as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { throw FormulaError.invalid(L("无法保存公式。")) }
         let attachment = NSTextAttachment(data: output as Data, ofType: "public.png")

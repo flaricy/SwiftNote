@@ -543,7 +543,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
         guard NSMaxRange(range) <= (view.string as NSString).length else { return }
         let context = textAttributes ?? formulaTextAttributes(at: range)
         let font = context[.font] as! NSFont
-        let attachment = try rendered ?? formula.attachment(fontSize: font.pointSize, surroundingFont: font)
+        let attachment = try rendered ?? formula.attachment(fontSize: font.pointSize, surroundingFont: font, surroundingText: MathFormula.adjacentText(in: view.attributedString(), range: range))
         let value = NSMutableAttributedString(string: "", attributes: bodyAttributes(size: defaultSize, family: defaultFamily))
         let text = view.string as NSString
         if formula.block && range.location > 0 && text.substring(with: NSRange(location: range.location-1, length: 1)) != "\n" {

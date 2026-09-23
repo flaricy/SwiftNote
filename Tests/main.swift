@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import ImageIO
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 func check(_ value: @autoclosure () -> Bool, _ label: String) { if !value() { fatalError("FAIL: \(label)") }; print("PASS: \(label)") }
@@ -323,5 +324,32 @@ try MainActor.assumeIsolated {
     let displayed = MathFormula.refreshSavedFormulas(in: mixed)
     check((displayed.attribute(.font, at: mixedIndex, effectiveRange: nil) as! NSFont).pointSize == 18, "saved formula inherits nearest neighbor rather than paragraph heading size")
     check(reopened.attribute(.baselineOffset, at: 0, effectiveRange: nil) != nil, "display repair does not mutate source document")
+}
+try MainActor.assumeIsolated {
+    for size in [CGFloat(14), 18, 24] {
+        for text in ["是", "函", "H", "x"] {
+            for latex in ["f(x)+1", "\\frac{a+b}{c}", "x_i^2"] {
+                let font = NSFont.systemFont(ofSize: size)
+                let attachment = try MathFormula(latex: latex, block: false).attachment(fontSize: size, surroundingFont: font, surroundingText: text)
+                let data = attachment.fileWrapper!.regularFileContents!
+                let source = CGImageSourceCreateWithData(data as CFData, nil)!
+                let image = CGImageSourceCreateImageAtIndex(source, 0, nil)!
+                let height = attachment.attachmentCell!.cellSize().height
+                let center = MathFormula.imageInkCenter(image, logicalHeight: height) + attachment.attachmentCell!.cellBaselineOffset().y
+                check(abs(center-MathFormula.textInkCenter(font: font, text: text)) < 0.1, "visible formula ink aligns with surrounding glyphs")
+            }
+        }
+    }
+}
+do {
+    var pixels = [UInt8](repeating: 0, count: 8*16*4)
+    for y in 0..<4 { for x in 0..<8 { pixels[(y*8+x)*4+3] = 255 } }
+    let provider = CGDataProvider(data: Data(pixels) as CFData)!
+    let image = CGImage(width: 8, height: 16, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: 32, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue), provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)!
+    check(abs(MathFormula.imageInkCenter(image, logicalHeight: 16)-14) < 0.01, "optical scan uses the correct top-to-bottom pixel orientation")
+    let chinese = NSAttributedString(string: "公式， /math-inline", attributes: bodyAttributes())
+    check(MathFormula.adjacentText(in: chinese, range: NSRange(location: 4, length: 12)) == "式", "alignment ignores neighboring punctuation and whitespace")
+    let english = NSAttributedString(string: "why /math-inline", attributes: bodyAttributes())
+    check(MathFormula.adjacentText(in: english, range: NSRange(location: 4, length: 12)) == "H", "Latin alignment is stable across descenders")
 }
 print("ALL TESTS PASSED")
