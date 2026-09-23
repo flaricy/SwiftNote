@@ -32,9 +32,11 @@ final class FormulaEditor: NSView, NSTextFieldDelegate {
         input.stringValue = formula.latex; input.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
         input.cell?.wraps = false; input.cell?.isScrollable = true; input.usesSingleLineMode = true
         input.isBordered = false; input.drawsBackground = false; input.focusRingType = .none
-        input.placeholderString = L("输入 LaTeX · 回车完成")
+        input.placeholderString = "LaTeX"
         input.delegate = self; input.setAccessibilityLabel(block ? L("独立公式源码") : L("行内公式源码"))
         preview.imageScaling = .scaleProportionallyDown
+        message.usesSingleLineMode = false; message.cell?.wraps = true; message.cell?.isScrollable = false
+        message.lineBreakMode = .byWordWrapping; message.maximumNumberOfLines = 0
         message.font = .systemFont(ofSize: 10); message.textColor = .secondaryLabelColor
         for child in [preview, input, message] { addSubview(child) }
     }
@@ -54,17 +56,20 @@ final class FormulaEditor: NSView, NSTextFieldDelegate {
     func updateGeometry() {
         let image = preview.image?.size ?? NSSize(width: 120, height: 24)
         let sourceWidth = (input.stringValue as NSString).size(withAttributes: [.font: input.font ?? NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)]).width
-        let width = block ? availableWidth : min(availableWidth, max(140, image.width+16, min(340, sourceWidth+16)))
+        let hintWidth = (message.stringValue as NSString).size(withAttributes: [.font: message.font!]).width + 20
+        let width = block ? availableWidth : min(availableWidth, max(140, min(240, hintWidth), image.width+16, min(340, sourceWidth+20)))
         let scale = min(1, (width-16)/max(1,image.width))
         let height = min(220, max(30, image.height*scale))
-        spacer.size = NSSize(width: width, height: height+65)
+        let messageWidth = max(1, width-16)
+        let messageHeight = max(16, ceil(message.cell!.cellSize(forBounds: NSRect(x: 0, y: 0, width: messageWidth, height: 10000)).height))
+        spacer.size = NSSize(width: width, height: height+39+messageHeight+10)
         let font = NSFont.systemFont(ofSize: fontSize)
-        spacer.baseline = block ? 0 : (font.ascender+font.descender)/2-height/2-60
+        spacer.baseline = block ? 0 : (font.ascender+font.descender)/2+height/2+5-spacer.size.height
         setFrameSize(spacer.size)
         preview.frame = NSRect(x: 8, y: 5, width: width-16, height: height)
         preview.imageAlignment = block ? .alignCenter : .alignLeft
         input.frame = NSRect(x: 8, y: height+12, width: width-16, height: 22)
-        message.frame = NSRect(x: 8, y: height+39, width: width-16, height: 16)
+        message.frame = NSRect(x: 8, y: height+39, width: messageWidth, height: messageHeight)
         needsDisplay = true; onGeometry?()
     }
     override func draw(_ dirtyRect: NSRect) {

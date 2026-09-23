@@ -217,4 +217,14 @@ do {
     Localization.language = .english
     check(L("设置") == "Settings", "switching back restores English")
 }
+MainActor.assumeIsolated {
+    let draft = FormulaEditor(formula: MathFormula(latex: "", block: false), range: NSRange(location: 0, length: 0), original: NSAttributedString(string: ""), fontSize: 16)
+    for width in [CGFloat(100), 140, 240, 400] {
+        draft.availableWidth = width; draft.refresh()
+        check(draft.frame.width <= width, "formula hints stay within available width")
+        let measured = draft.message.cell!.cellSize(forBounds: NSRect(x: 0, y: 0, width: draft.message.frame.width, height: 10000))
+        check(draft.message.frame.height >= ceil(measured.height) && draft.message.frame.maxY <= draft.bounds.maxY, "formula hint reserves full wrapped height")
+        check(draft.input.placeholderString == "LaTeX", "compact formula placeholder remains readable")
+    }
+}
 print("ALL TESTS PASSED")

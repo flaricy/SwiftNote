@@ -37,7 +37,7 @@ extension AppController {
         statusItem.button?.toolTip = L("随记 · 点击立即新建  ⌃⌥N\n右键打开菜单")
         statusItem.button?.setAccessibilityLabel(L("快速新建备忘录"))
         if let draft = editor.formulaDraft {
-            draft.input.placeholderString = L("输入 LaTeX · 回车完成")
+            draft.input.placeholderString = "LaTeX"
             draft.input.setAccessibilityLabel(L(draft.block ? "独立公式源码" : "行内公式源码"))
             MainActor.assumeIsolated { draft.refresh() }
         } else { editor.updateCommandPalette() }

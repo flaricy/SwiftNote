@@ -17,7 +17,7 @@ extension AppController {
             editor.view.insertText("，接着记录推导。\n\n今天读到的高斯积分\n", replacementRange: editor.view.selectedRange())
             try? editor.insertFormula(MathFormula(latex: "\\int_{-\\infty}^{\\infty} e^{-x^2}\\,dx=\\sqrt{\\pi}", block: true), replacing: NSRange(location: editor.view.string.utf16.count, length: 0))
             edited(); _ = flush(); reloadList(); select(id)
-            let narrow = ["narrow", "inline"].contains(ProcessInfo.processInfo.environment["SWIFTNOTE_FIXTURE"] ?? "")
+            let narrow = mode.hasPrefix("empty") || ["narrow", "inline"].contains(ProcessInfo.processInfo.environment["SWIFTNOTE_FIXTURE"] ?? "")
             window.setContentSize(NSSize(width: narrow ? 740 : 1060, height: narrow ? 480 : 740)); window.center()
             if narrow { split.setPosition(205, ofDividerAt: 0) }
             try? String(ProcessInfo.processInfo.processIdentifier).write(toFile: path + "/pid", atomically: true, encoding: .utf8)
@@ -29,6 +29,11 @@ extension AppController {
                     if value is NSTextAttachment { first = range; stop.pointee = true }
                 }
                 if let first { editFormula(block: false, range: first) }
+            }
+            if mode.hasPrefix("empty") {
+                if mode.contains("dark") { NSApp.appearance = NSAppearance(named: .darkAqua) }
+                editor.load(NSAttributedString(string: "/math-inline", attributes: bodyAttributes()), lines: [])
+                editFormula(block: false, range: NSRange(location: 0, length: 12))
             }
             if mode.hasPrefix("settings") {
                 showSettings()
