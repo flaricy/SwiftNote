@@ -3,7 +3,7 @@
 <p align="center"><img src="docs/assets/app-icon.png" width="76" alt="SwiftNote icon"></p>
 <h1 align="center">SwiftNote</h1>
 <p align="center">A thought, a note. Nothing in the way.</p>
-<p align="center"><a href="https://github.com/flaricy/SwiftNote/releases/download/v1.1.1/SwiftNote-1.1.1-macOS-arm64.zip"><b>↓ Download for macOS</b></a> · <a href="https://flaricy.github.io/SwiftNote/en.html">Website ↗</a></p>
+<p align="center"><a href="https://github.com/flaricy/SwiftNote/releases/download/v1.1.2/SwiftNote-1.1.2-macOS-arm64.zip"><b>↓ Download for macOS</b></a> · <a href="https://flaricy.github.io/SwiftNote/en.html">Website ↗</a></p>
 <p align="center"><sub>Apple Silicon · macOS 14+ · Free & open source · MIT</sub></p>
 
 [![A purchase note with its latest edit time beside the text](docs/assets/orders-en.png)](https://flaricy.github.io/SwiftNote/en.html#order-time)
@@ -18,7 +18,7 @@ SwiftNote is a small native macOS memo app. Open straight into your last note, o
 
 **Keep the everyday things.** Paste or drop in images and resize them proportionally. Edit tables, check off tasks, search your notes, and let autosave handle the rest.
 
-> The app’s menus are currently in Chinese; English note content is supported. Screenshots show fictional English notes in the actual app. The download is ad-hoc signed and not Apple-notarized. Read the [installation guide](docs/GUIDE.en.md#installation) before first launch.
+> The interface defaults to English; choose English or 中文 in Settings. Screenshots show fictional English notes in the actual app. The download is ad-hoc signed and not Apple-notarized. Read the [installation guide](docs/GUIDE.en.md#installation) before first launch.
 
 ### A few useful gestures
 
