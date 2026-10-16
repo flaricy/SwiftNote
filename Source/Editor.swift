@@ -288,6 +288,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
     let commandList = CommandListView()
     let commandScroll = NSScrollView()
     let selectionTools = EditorSurface()
+    let colorPopover = NSPopover()
     var slashRange: NSRange?
     var commandIndex = 0
     var commandItems: [(String, String, Int)] = []
@@ -332,10 +333,10 @@ final class EditorController: NSObject, NSTextViewDelegate {
             surface.layer?.shadowColor = NSColor.black.cgColor; surface.layer?.shadowOpacity = 0.12; surface.layer?.shadowRadius = 7; surface.layer?.shadowOffset = CGSize(width: 0, height: -2)
             view.addSubview(surface)
         }
-        for (i, symbol) in ["bold", "italic", "underline", "strikethrough"].enumerated() {
+        for (i, symbol) in ["bold", "italic", "underline", "strikethrough", "a.square"].enumerated() {
             let button = NSButton(image: NSImage(systemSymbolName: symbol, accessibilityDescription: symbol)!, target: self, action: #selector(selectionFormat(_:)))
             button.tag = i; button.isBordered = false; button.contentTintColor = .labelColor
-            button.toolTip = [L("粗体 ⌘B"), L("斜体 ⌘I"), L("下划线 ⌘U"), L("删除线")][i]; button.setAccessibilityLabel(button.toolTip)
+            button.toolTip = [L("粗体 ⌘B"), L("斜体 ⌘I"), L("下划线 ⌘U"), L("删除线"), L("颜色")][i]; button.setAccessibilityLabel(button.toolTip)
             button.frame = NSRect(x: 5+i*32, y: 3, width: 30, height: 28); selectionTools.addSubview(button)
         }
         view.onChecklist = { [weak self] at in self?.toggleChecklist(at: at) }
@@ -346,6 +347,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
         view.onTableTab = { [weak self] backwards in self?.navigateTable(backwards: backwards) ?? false }
     }
     func load(_ text: NSAttributedString, lines: [LineRecord]) {
+        colorPopover.performClose(nil)
         pendingHeading = nil
         view.hasClickedLine = false; commandPalette.isHidden = true; selectionTools.isHidden = true; slashRange = nil
         updating = true
@@ -406,7 +408,7 @@ final class EditorController: NSObject, NSTextViewDelegate {
         let valid = range.length > 0 && !view.hasMarkedText() && !updating && !view.attributedString().attributedSubstring(from: range).string.contains("\u{fffc}")
         selectionTools.isHidden = !valid
         if valid {
-            place(selectionTools, size: NSSize(width: 138, height: 34), above: true)
+            place(selectionTools, size: NSSize(width: 170, height: 34), above: true)
             if let lm = view.layoutManager, let tc = view.textContainer {
                 let glyph = lm.glyphRange(forCharacterRange: NSRange(location: range.location, length: 1), actualCharacterRange: nil)
                 let start = lm.boundingRect(forGlyphRange: glyph, in: tc).offsetBy(dx: view.textContainerOrigin.x, dy: view.textContainerOrigin.y)
@@ -414,9 +416,9 @@ final class EditorController: NSObject, NSTextViewDelegate {
                 let ink = lm.boundingRect(forGlyphRange: selectedGlyphs, in: tc).offsetBy(dx: view.textContainerOrigin.x, dy: view.textContainerOrigin.y)
                 let visible = view.visibleRect
                 let candidates = [
-                    NSRect(x: ink.maxX+12, y: start.midY-17, width: 138, height: 34),
-                    NSRect(x: max(visible.minX+8, start.minX), y: ink.minY-39, width: 138, height: 34),
-                    NSRect(x: max(visible.minX+8, start.minX), y: ink.maxY+6, width: 138, height: 34)
+                    NSRect(x: ink.maxX+12, y: start.midY-17, width: 170, height: 34),
+                    NSRect(x: max(visible.minX+8, start.minX), y: ink.minY-39, width: 170, height: 34),
+                    NSRect(x: max(visible.minX+8, start.minX), y: ink.maxY+6, width: 170, height: 34)
                 ]
                 // Only float into free space; the persistent Aa menu remains available otherwise.
                 let allGlyphs = lm.glyphRange(forBoundingRect: visible.offsetBy(dx: -view.textContainerOrigin.x, dy: -view.textContainerOrigin.y), in: tc)
@@ -430,12 +432,14 @@ final class EditorController: NSObject, NSTextViewDelegate {
             let attrs = view.textStorage!.attributes(at: range.location, effectiveRange: nil)
             let traits = NSFontManager.shared.traits(of: attrs[.font] as? NSFont ?? NSFont.systemFont(ofSize: defaultSize))
             for case let button as NSButton in selectionTools.subviews {
+                if button.tag == 4 { button.contentTintColor = .labelColor; continue }
                 let active = button.tag == 0 ? traits.contains(.boldFontMask) : (button.tag == 1 ? traits.contains(.italicFontMask) : (attrs[button.tag == 2 ? .underlineStyle : .strikethroughStyle] as? Int ?? 0) != 0)
                 button.contentTintColor = active ? .controlAccentColor : .labelColor
             }
         }
     }
     @objc func selectionFormat(_ sender: NSButton) {
+        if sender.tag == 4 { showColors(sender); return }
         if sender.tag < 2 { formatFont(trait: sender.tag == 0 ? .boldFontMask : .italicFontMask) }
         else { toggleAttribute(sender.tag == 2 ? .underlineStyle : .strikethroughStyle) }
         updateSelectionTools()

@@ -352,4 +352,57 @@ do {
     let english = NSAttributedString(string: "why /math-inline", attributes: bodyAttributes())
     check(MathFormula.adjacentText(in: english, range: NSRange(location: 4, length: 12)) == "H", "Latin alignment is stable across descenders")
 }
+do {
+    let suite = "SwiftNote.ColorTests." + UUID().uuidString
+    let original = Localization.preferences
+    Localization.preferences = UserDefaults(suiteName: suite)!
+    defer { Localization.preferences.removePersistentDomain(forName: suite); Localization.preferences = original }
+    check(TextColorChoice.last == TextColorChoice(index: 4, background: true), "first color shortcut defaults to yellow highlight")
+    fresh("one two\nthree")
+    editor.view.setSelectedRange(NSRange(location: 0, length: 3))
+    let blue = TextColorChoice(index: 6, background: false)
+    let yellow = TextColorChoice(index: 4, background: true)
+    let originalHashes = fingerprints(editor.view.attributedString())
+    editor.applyColor(blue)
+    check(editor.colorsMatch(editor.view.textStorage!.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor, blue.color), "color applies only to selected text")
+    check(!editor.colorsMatch(editor.view.textStorage!.attribute(.foregroundColor, at: 4, effectiveRange: nil) as? NSColor, blue.color), "color leaves unselected text untouched")
+    check(fingerprints(editor.view.attributedString())[0] != originalHashes[0] && fingerprints(editor.view.attributedString())[1] == originalHashes[1], "color changes update only affected line identity")
+    editor.view.setSelectedRange(NSRange(location: 4, length: 3)); editor.repeatLastColor()
+    check(editor.colorsMatch(editor.view.textStorage!.attribute(.foregroundColor, at: 4, effectiveRange: nil) as? NSColor, blue.color), "repeat shortcut applies last color to another selection")
+    editor.applyColor(yellow)
+    check(editor.colorsMatch(editor.view.textStorage!.attribute(.foregroundColor, at: 4, effectiveRange: nil) as? NSColor, blue.color), "highlight preserves existing text color")
+    let undo = editor.view.undoManager!; undo.removeAllActions(); undo.groupsByEvent = false; undo.beginUndoGrouping()
+    editor.applyColor(TextColorChoice(index: 0, background: true)); undo.endUndoGrouping()
+    check(editor.view.textStorage!.attribute(.backgroundColor, at: 4, effectiveRange: nil) == nil, "default background clears highlight")
+    undo.undo()
+    check(editor.colorsMatch(editor.view.textStorage!.attribute(.backgroundColor, at: 4, effectiveRange: nil) as? NSColor, yellow.color), "highlight removal can be undone")
+    undo.redo(); undo.groupsByEvent = true
+    fresh("first\nsecond")
+    editor.view.setSelectedRange(NSRange(location: 1, length: 0)); editor.applyColor(yellow)
+    check(editor.view.textStorage!.attribute(.backgroundColor, at: 3, effectiveRange: nil) != nil && editor.view.textStorage!.attribute(.backgroundColor, at: 7, effectiveRange: nil) == nil, "without selection color applies to current paragraph only")
+    fresh(); editor.applyColor(blue); type("New text")
+    check(editor.colorsMatch(editor.view.textStorage!.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor, blue.color), "empty paragraph color applies to subsequent typing")
+    for background in [false, true] {
+        for index in 1..<10 {
+            fresh("Persist color")
+            editor.view.setSelectedRange(NSRange(location: 0, length: 7))
+            let choice = TextColorChoice(index: index, background: background)
+            editor.applyColor(choice)
+            let note = try store.create()
+            try store.update(id: note, text: editor.view.attributedString(), lines: [], date: Date())
+            let reopened = try store.load(note)
+            check(editor.colorsMatch(reopened.attribute(choice.key, at: 0, effectiveRange: nil) as? NSColor, choice.color), "palette color survives save and reopen")
+        }
+    }
+    var quote = bodyAttributes()
+    let style = NSMutableParagraphStyle(); style.headIndent = 20; style.firstLineHeadIndent = 20; quote[.paragraphStyle] = style
+    editor.load(NSAttributedString(string: "Quoted text", attributes: quote), lines: [])
+    editor.view.setSelectedRange(NSRange(location: 0, length: 11)); editor.applyColor(blue); editor.applyColor(yellow)
+    let quotedNote = try store.create()
+    try store.update(id: quotedNote, text: editor.view.attributedString(), lines: [], date: Date())
+    let quoted = try store.load(quotedNote)
+    check(editor.colorsMatch(quoted.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor, blue.color) && editor.colorsMatch(quoted.attribute(.backgroundColor, at: 0, effectiveRange: nil) as? NSColor, yellow.color), "quote colors and highlights survive reopening")
+    TextColorChoice.last = TextColorChoice(index: 9, background: true)
+    check(TextColorChoice.last == TextColorChoice(index: 9, background: true), "last choice is stored in preferences")
+}
 print("ALL TESTS PASSED")

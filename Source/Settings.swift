@@ -20,6 +20,7 @@ extension AppController {
         applyLanguage()
     }
     func applyLanguage() {
+        editor.colorPopover.performClose(nil)
         buildMenu()
         window.title = L("随记")
         settingsWindow?.title = L("设置"); languageLabel?.stringValue = L("语言")
@@ -31,7 +32,7 @@ extension AppController {
         for (index, key) in ["正文", "标题 1", "标题 2", "标题 3", "标题 4"].enumerated() { blockPopup.item(at: index)?.title = L(key) }
         for (index, key) in ["系统字体", "苹方", "宋体", "Helvetica", "Georgia", "Menlo"].enumerated() { fontPopup.item(at: index)?.title = L(key) }
         for case let button as NSButton in editor.selectionTools.subviews {
-            let key = ["粗体 ⌘B", "斜体 ⌘I", "下划线 ⌘U", "删除线"][button.tag]
+            let key = ["粗体 ⌘B", "斜体 ⌘I", "下划线 ⌘U", "删除线", "颜色"][button.tag]
             button.toolTip = L(key); button.setAccessibilityLabel(L(key))
         }
         statusItem.button?.toolTip = L("随记 · 点击立即新建  ⌃⌥N\n右键打开菜单")

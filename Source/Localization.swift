@@ -9,6 +9,8 @@ enum Localization {
     }
     static func key(for text: String) -> String { english[text] != nil ? text : (english.first { $0.value == text }?.key ?? text) }
     static let english: [String: String] = [
+        "颜色": "Color", "文字颜色": "Text color", "背景高亮": "Background", "文字颜色与高亮": "Text color & highlight", "重复上次颜色": "Last used color",
+        "默认": "Default", "灰色": "Gray", "棕色": "Brown", "橙色": "Orange", "黄色": "Yellow", "绿色": "Green", "蓝色": "Blue", "紫色": "Purple", "粉色": "Pink", "红色": "Red",
         "表头列": "Column",
         "[公式]": "[Formula]",
         "[图片]": "[Image]",

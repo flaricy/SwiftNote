@@ -71,6 +71,24 @@ extension AppController {
                     }
                 }
             }
+            if mode.hasPrefix("colors") {
+                editor.load(NSAttributedString(string: "A little color, when it matters.\n\nCoffee beans · ¥128\nTrain tickets · Friday\nKeep the important details close.", attributes: bodyAttributes()), lines: [])
+                let string = editor.view.string as NSString
+                editor.view.setSelectedRange(string.range(of: "Coffee beans")); editor.applyColor(TextColorChoice(index: 5, background: false))
+                editor.view.setSelectedRange(string.range(of: "¥128")); editor.applyColor(TextColorChoice(index: 4, background: true))
+                editor.view.setSelectedRange(string.range(of: "Train tickets")); editor.applyColor(TextColorChoice(index: 6, background: false))
+                editor.view.setSelectedRange(string.range(of: "Friday"))
+                // Exercise the actual registered menu key equivalent.
+                let key = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.command, .shift], timestamp: 0, windowNumber: window.windowNumber, context: nil, characters: "H", charactersIgnoringModifiers: "H", isARepeat: false, keyCode: 4)!
+                TextColorChoice.last = TextColorChoice(index: 4, background: true)
+                let handled = NSApp.mainMenu!.performKeyEquivalent(with: key)
+                try? "shortcutHandled=\(handled), highlightApplied=\(editor.view.textStorage!.attribute(.backgroundColor, at: string.range(of: "Friday").location, effectiveRange: nil) != nil)".write(toFile: path+"/shortcut-result", atomically: true, encoding: .utf8)
+                editor.view.setSelectedRange(string.range(of: "important details"))
+                if mode.contains("narrow") { window.setContentSize(NSSize(width: 740, height: 600)); split.setPosition(205, ofDividerAt: 0) }
+                if mode.contains("dark") { NSApp.appearance = NSAppearance(named: .darkAqua) }
+                editor.showColors()
+                try? String(editor.colorPopover.contentViewController!.view.window!.windowNumber).write(toFile: path+"/palette-window-id", atomically: true, encoding: .utf8)
+            }
             if mode == "alignment" {
                 editor.load(NSAttributedString(string: "你好 /math-inline", attributes: bodyAttributes(size: 12)), lines: [])
                 editFormula(block: false, range: NSRange(location: 3, length: 12))

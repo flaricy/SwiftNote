@@ -48,6 +48,11 @@ func fingerprints(_ text: NSAttributedString) -> [String] {
                 p += "|h\(s.headerLevel)|a\(s.alignment.rawValue)|i\(s.headIndent)|\(s.firstLineHeadIndent)"
                 for b in s.textBlocks { if let b = b as? NSTextTableBlock { p += "|table:\(b.startingRow),\(b.startingColumn),\(b.rowSpan),\(b.columnSpan),\(b.table.numberOfColumns)" } }
             }
+            for key in [NSAttributedString.Key.foregroundColor, .backgroundColor] {
+                if let color = (a[key] as? NSColor)?.usingColorSpace(.sRGB) {
+                    p += "|\(key.rawValue):\(Int((color.redComponent*255).rounded())),\(Int((color.greenComponent*255).rounded())),\(Int((color.blueComponent*255).rounded()))"
+                }
+            }
             if let u = a[.underlineStyle] as? Int { p += "|u\(u)" }
             if let u = a[.strikethroughStyle] as? Int { p += "|s\(u)" }
             if let t = a[.attachment] as? NSTextAttachment {
@@ -99,7 +104,6 @@ final class NoteStore {
                 }
             }
             if let paragraph = attrs[.paragraphStyle] as? NSParagraphStyle {
-                if paragraph.headIndent == 20, paragraph.textBlocks.isEmpty { result.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: range) }
                 for case let block as NSTextTableBlock in paragraph.textBlocks { block.setBorderColor(.separatorColor); if block.startingRow == 0 { block.backgroundColor = .controlBackgroundColor } }
             }
         }

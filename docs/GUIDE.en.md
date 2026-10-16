@@ -55,3 +55,9 @@ Rendering works offline; LaTeX source stays embedded in the RTFD attachment. Thi
 ## Interface language
 
 Choose **SwiftNote → Settings… (⌘,) → Language** to switch between English and 中文. English is the default. The setting applies immediately and is remembered; slash command names follow the interface language, while command aliases and your notes stay unchanged.
+
+## Text color and highlights
+
+Select text and use the A color button in the floating toolbar, or open Aa → Color. Text and background each offer a default option and nine colors; reset them independently.
+
+⌘⇧H repeats the last text or highlight color (yellow highlight on first use). Without a selection, it colors the current paragraph; in an empty paragraph, it sets the color for subsequent typing. Note colors and your last choice are retained across restarts.

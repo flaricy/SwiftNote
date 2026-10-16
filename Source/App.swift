@@ -95,6 +95,9 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
         for (title, selector, key) in [(L("撤销"), Selector(("undo:")), "z"), (L("重做"), Selector(("redo:")), "Z"), (L("剪切"), #selector(NSText.cut(_:)), "x"), (L("复制"), #selector(NSText.copy(_:)), "c"), (L("粘贴"), #selector(NSText.paste(_:)), "v"), (L("全选"), #selector(NSText.selectAll(_:)), "a")] { let i = NSMenuItem(title: title, action: selector, keyEquivalent: key); edit.addItem(i) }
         let format = NSMenu(title: L("格式")); let formatItem = NSMenuItem(title: L("格式"), action: nil, keyEquivalent: ""); formatItem.submenu = format; main.addItem(formatItem)
         add(format, L("粗体"), #selector(bold), "b"); add(format, L("斜体"), #selector(italic), "i"); add(format, L("下划线"), #selector(underline), "u"); add(format, L("切换待办状态"), #selector(toggleChecklist), "")
+        add(format, L("文字颜色与高亮"), #selector(showTextColors), "")
+        let repeatColor = NSMenuItem(title: L("重复上次颜色"), action: #selector(repeatTextColor), keyEquivalent: "H")
+        repeatColor.keyEquivalentModifierMask = [.command, .shift]; repeatColor.target = self; format.addItem(repeatColor)
         for i in 0...4 { let item = NSMenuItem(title: i == 0 ? L("正文") : L("标题") + " \(i)", action: #selector(headingMenu(_:)), keyEquivalent: "\(i)"); item.keyEquivalentModifierMask = [.command, .option]; item.tag = i; item.target = self; format.addItem(item) }
         let display = NSMenu(title: L("显示")); let displayItem = NSMenuItem(title: L("显示"), action: nil, keyEquivalent: ""); displayItem.submenu = display; main.addItem(displayItem)
         add(display, L("显示／隐藏修改时间"), #selector(toggleTimes), "")
@@ -144,7 +147,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
         sizePopup.isBordered = false; sizePopup.drawsBackground = false; sizePopup.font = .systemFont(ofSize: 12)
         sizePopup.widthAnchor.constraint(equalToConstant: 52).isActive = true; sizePopup.toolTip = L("字号（8–96）")
         let formatController = NSViewController()
-        let formatView = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 164))
+        let formatView = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 200))
         formatController.view = formatView
         func formatRow(_ title: String, _ control: NSView) -> NSStackView {
             let label = NSTextField(labelWithString: title); label.font = .systemFont(ofSize: 12); label.textColor = .secondaryLabelColor
@@ -155,7 +158,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
             return row
         }
         let styles = NSStackView(views: [button("bold", L("粗体  ⌘B"), #selector(bold)), button("italic", L("斜体  ⌘I"), #selector(italic))]); styles.spacing = 6
-        let form = NSStackView(views: [formatRow(L("段落"), blockPopup), formatRow(L("字体"), fontPopup), formatRow(L("字号"), sizePopup), formatRow(L("样式"), styles)])
+        let form = NSStackView(views: [formatRow(L("段落"), blockPopup), formatRow(L("字体"), fontPopup), formatRow(L("字号"), sizePopup), formatRow(L("样式"), styles), formatRow(L("颜色"), button("a.square", L("文字颜色与高亮"), #selector(showTextColors)))])
         form.orientation = .vertical; form.alignment = .leading; form.spacing = 8; form.translatesAutoresizingMaskIntoConstraints = false; formatView.addSubview(form)
         NSLayoutConstraint.activate([form.leadingAnchor.constraint(equalTo: formatView.leadingAnchor, constant: 16), form.trailingAnchor.constraint(equalTo: formatView.trailingAnchor, constant: -16), form.topAnchor.constraint(equalTo: formatView.topAnchor, constant: 14)])
         formatPopover.contentViewController = formatController; formatPopover.behavior = .transient; formatPopover.contentSize = formatView.frame.size; formatPopover.animates = false
@@ -286,6 +289,8 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
     @objc func fontChanged() { guard flush() else { return }; let fonts = [".AppleSystemUIFont", "PingFangSC-Regular", "SongtiSC-Regular", "Helvetica", "Georgia", "Menlo-Regular"]; editor.formatFont(family: fonts[fontPopup.indexOfSelectedItem]) }
     @objc func sizeChanged() { guard flush() else { return }; guard let value = Double(sizePopup.stringValue), (8...96).contains(value) else { sizePopup.stringValue = "18"; return }; editor.formatFont(size: value) }
     @objc func bold() { guard flush() else { return }; editor.formatFont(trait: .boldFontMask) }
+    @objc func showTextColors() { guard flush() else { return }; formatPopover.performClose(nil); editor.showColors() }
+    @objc func repeatTextColor() { guard flush() else { return }; editor.repeatLastColor() }
     @objc func underline() { guard flush() else { return }; editor.toggleAttribute(.underlineStyle) }
     @objc func toggleChecklist() { guard flush() else { return }; editor.toggleChecklist() }
     @objc func italic() { guard flush() else { return }; editor.formatFont(trait: .italicFontMask) }
